@@ -2,16 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Secure Password Vault</title>
+  <title>Secure Password Vault & Notes</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Firebase v10 -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-    /* 🔴 REPLACE WITH YOUR FIREBASE CONFIG */
     const firebaseConfig = {
       apiKey: "AIzaSyDSvQR6qhmjv_j8WxZNqKLy02LxOp3bwIE",
       authDomain: "personal-password-vault.firebaseapp.com",
@@ -25,45 +24,61 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    // Ripple Effect Function
+    // Global state
+    let editingPasswordId = null;
+    let editingNoteId = null;
+
+    // Ripple Effect
     function createRipple(event) {
       const button = event.currentTarget;
+      if (button.classList.contains('no-ripple')) return;
+      
       const circle = document.createElement("span");
       const diameter = Math.max(button.clientWidth, button.clientHeight);
       const radius = diameter / 2;
-
       const rect = button.getBoundingClientRect();
+      
       circle.style.width = circle.style.height = `${diameter}px`;
       circle.style.left = `${event.clientX - rect.left - radius}px`;
       circle.style.top = `${event.clientY - rect.top - radius}px`;
       circle.classList.add("ripple");
-
+      
       const ripple = button.getElementsByClassName("ripple")[0];
       if (ripple) ripple.remove();
-
+      
       button.appendChild(circle);
     }
 
-    // Add ripple effect to all buttons
+    // Initialize ripple buttons
     document.addEventListener('DOMContentLoaded', function() {
-      const buttons = document.querySelectorAll('button:not(.logout)');
+      const buttons = document.querySelectorAll('button');
       buttons.forEach(button => {
         button.addEventListener('click', createRipple);
       });
+      
+      // Check dark mode preference
+      if (localStorage.getItem('darkMode') === 'true') {
+        document.body.classList.add('dark-mode');
+      }
     });
 
-    // Toggle Dark Mode
+    // Dark Mode Toggle
     function toggleDarkMode() {
       document.body.classList.toggle('dark-mode');
       localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
     }
 
-    // Check for saved dark mode preference
-    document.addEventListener('DOMContentLoaded', function() {
-      if (localStorage.getItem('darkMode') === 'true') {
-        document.body.classList.add('dark-mode');
-      }
-    });
+    // Tab Navigation
+    function showTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.add('hidden');
+      });
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.getElementById(tabName).classList.remove('hidden');
+      event.currentTarget.classList.add('active');
+    }
 
     // LOGIN
     window.firebaseLogin = async function () {
@@ -72,19 +87,18 @@
       const loginBtn = document.querySelector('#loginBox button');
       const originalText = loginBtn.innerHTML;
 
-      // Show loading spinner
       loginBtn.innerHTML = '<div class="spinner"></div> Logging in...';
       loginBtn.disabled = true;
 
       try {
         await signInWithEmailAndPassword(auth, email, password);
         document.getElementById("loginBox").classList.add("hidden");
-        document.getElementById("vaultBox").classList.remove("hidden");
-        await loadPasswords();
+        document.getElementById("appContainer").classList.remove("hidden");
+        loadPasswords();
+        loadNotes();
       } catch (error) {
         alert("Login failed. Check email or password.");
       } finally {
-        // Restore button
         loginBtn.innerHTML = originalText;
         loginBtn.disabled = false;
       }
@@ -96,12 +110,12 @@
       location.reload();
     };
 
-    // SAVE PASSWORD
+    // PASSWORD FUNCTIONS
     window.savePassword = async function () {
-      const service = document.getElementById("service").value;
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-      const saveBtn = document.querySelector('#vaultBox button:first-of-type');
+      const service = document.getElementById("service").value.trim();
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const saveBtn = document.querySelector('#savePasswordBtn');
       const originalText = saveBtn.innerHTML;
 
       if (!service || !username || !password) {
@@ -109,59 +123,303 @@
         return;
       }
 
-      // Show loading spinner
       saveBtn.innerHTML = '<div class="spinner small"></div> Saving...';
       saveBtn.disabled = true;
 
       try {
-        await addDoc(collection(db, "passwords"), {
-          service,
-          username,
-          password,
-          created: new Date()
-        });
+        if (editingPasswordId) {
+          // Update existing password
+          await updateDoc(doc(db, "passwords", editingPasswordId), {
+            service,
+            username,
+            password,
+            updated: new Date()
+          });
+          editingPasswordId = null;
+          document.getElementById("savePasswordBtn").textContent = "Save Password";
+        } else {
+          // Add new password
+          await addDoc(collection(db, "passwords"), {
+            service,
+            username,
+            password,
+            created: new Date(),
+            updated: new Date()
+          });
+        }
 
+        // Clear form
         document.getElementById("service").value = "";
         document.getElementById("username").value = "";
         document.getElementById("password").value = "";
 
-        await loadPasswords();
+        loadPasswords();
       } catch (error) {
-        alert("Error saving password: " + error.message);
+        alert("Error: " + error.message);
       } finally {
-        // Restore button
         saveBtn.innerHTML = originalText;
         saveBtn.disabled = false;
       }
     };
 
-    // LOAD PASSWORDS with fade-in effect
+    window.editPassword = function (id, service, username, password) {
+      editingPasswordId = id;
+      document.getElementById("service").value = service;
+      document.getElementById("username").value = username;
+      document.getElementById("password").value = password;
+      document.getElementById("savePasswordBtn").textContent = "Update Password";
+      showTab('passwordsTab');
+      document.getElementById("service").focus();
+    };
+
+    window.deletePassword = async function (id) {
+      if (confirm("Are you sure you want to delete this password?")) {
+        try {
+          await deleteDoc(doc(db, "passwords", id));
+          loadPasswords();
+        } catch (error) {
+          alert("Error deleting: " + error.message);
+        }
+      }
+    };
+
+    // LOAD PASSWORDS
     async function loadPasswords() {
       const list = document.getElementById("passwordList");
       list.innerHTML = "";
-      list.classList.remove('fade-in');
 
-      const querySnapshot = await getDocs(collection(db, "passwords"));
-      const fragment = document.createDocumentFragment();
-      
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const div = document.createElement("div");
-        div.className = "entry fade-in";
-        div.innerHTML = `
-          <strong>${data.service}</strong><br>
-          <span>User:</span> ${data.username}<br>
-          <span>Password:</span> ${data.password}
-        `;
-        fragment.appendChild(div);
-      });
-      
-      list.appendChild(fragment);
-      list.classList.add('fade-in');
+      try {
+        const querySnapshot = await getDocs(collection(db, "passwords"));
+        const fragment = document.createDocumentFragment();
+        
+        if (querySnapshot.empty) {
+          list.innerHTML = '<div class="empty-state">No passwords saved yet</div>';
+          return;
+        }
+
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          const div = document.createElement("div");
+          div.className = "entry fade-in";
+          div.innerHTML = `
+            <div class="entry-header">
+              <strong>${data.service}</strong>
+              <div class="entry-actions">
+                <button class="icon-btn edit-btn" onclick="editPassword('${doc.id}', '${data.service.replace(/'/g, "\\'")}', '${data.username.replace(/'/g, "\\'")}', '${data.password.replace(/'/g, "\\'")}')">✏️</button>
+                <button class="icon-btn delete-btn" onclick="deletePassword('${doc.id}')">🗑️</button>
+              </div>
+            </div>
+            <div class="entry-content">
+              <div><span>Username:</span> ${data.username}</div>
+              <div><span>Password:</span> <span class="password-text">${data.password}</span> <button class="copy-btn" onclick="copyToClipboard('${data.password.replace(/'/g, "\\'")}')">📋</button></div>
+              <div class="entry-date">Created: ${data.created?.toDate().toLocaleDateString() || 'N/A'}</div>
+            </div>
+          `;
+          fragment.appendChild(div);
+        });
+        
+        list.appendChild(fragment);
+      } catch (error) {
+        list.innerHTML = '<div class="error">Error loading passwords</div>';
+      }
     }
 
-    // Expose dark mode toggle to window
+    // NOTES FUNCTIONS
+    window.saveNote = async function () {
+      const title = document.getElementById("noteTitle").value.trim();
+      const content = document.getElementById("noteContent").value.trim();
+      const category = document.getElementById("noteCategory").value;
+      const saveBtn = document.querySelector('#saveNoteBtn');
+      const originalText = saveBtn.innerHTML;
+
+      if (!title || !content) {
+        alert("Title and content are required");
+        return;
+      }
+
+      saveBtn.innerHTML = '<div class="spinner small"></div> Saving...';
+      saveBtn.disabled = true;
+
+      try {
+        if (editingNoteId) {
+          // Update existing note
+          await updateDoc(doc(db, "notes", editingNoteId), {
+            title,
+            content,
+            category,
+            updated: new Date()
+          });
+          editingNoteId = null;
+          document.getElementById("saveNoteBtn").textContent = "Save Note";
+        } else {
+          // Add new note
+          await addDoc(collection(db, "notes"), {
+            title,
+            content,
+            category,
+            created: new Date(),
+            updated: new Date()
+          });
+        }
+
+        // Clear form
+        document.getElementById("noteTitle").value = "";
+        document.getElementById("noteContent").value = "";
+        document.getElementById("noteCategory").value = "code";
+
+        loadNotes();
+      } catch (error) {
+        alert("Error: " + error.message);
+      } finally {
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+      }
+    };
+
+    window.editNote = function (id, title, content, category) {
+      editingNoteId = id;
+      document.getElementById("noteTitle").value = title;
+      document.getElementById("noteContent").value = content;
+      document.getElementById("noteCategory").value = category;
+      document.getElementById("saveNoteBtn").textContent = "Update Note";
+      showTab('notesTab');
+      document.getElementById("noteTitle").focus();
+    };
+
+    window.deleteNote = async function (id) {
+      if (confirm("Are you sure you want to delete this note?")) {
+        try {
+          await deleteDoc(doc(db, "notes", id));
+          loadNotes();
+        } catch (error) {
+          alert("Error deleting: " + error.message);
+        }
+      }
+    };
+
+    // LOAD NOTES
+    async function loadNotes() {
+      const list = document.getElementById("notesList");
+      list.innerHTML = "";
+
+      try {
+        const querySnapshot = await getDocs(collection(db, "notes"));
+        const fragment = document.createDocumentFragment();
+        
+        if (querySnapshot.empty) {
+          list.innerHTML = '<div class="empty-state">No notes saved yet</div>';
+          return;
+        }
+
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          const div = document.createElement("div");
+          div.className = `note-entry fade-in ${data.category}`;
+          div.innerHTML = `
+            <div class="note-header">
+              <div>
+                <strong>${data.title}</strong>
+                <span class="note-category ${data.category}">${data.category === 'code' ? '💻 Code' : data.category === 'important' ? '⭐ Important' : '📝 General'}</span>
+              </div>
+              <div class="entry-actions">
+                <button class="icon-btn edit-btn" onclick="editNote('${doc.id}', '${data.title.replace(/'/g, "\\'")}', '${data.content.replace(/'/g, "\\'").replace(/\n/g, '\\n')}', '${data.category}')">✏️</button>
+                <button class="icon-btn delete-btn" onclick="deleteNote('${doc.id}')">🗑️</button>
+              </div>
+            </div>
+            <pre class="note-content">${escapeHtml(data.content)}</pre>
+            <div class="entry-date">
+              Created: ${data.created?.toDate().toLocaleDateString() || 'N/A'}
+              ${data.updated ? ' | Updated: ' + data.updated.toDate().toLocaleDateString() : ''}
+            </div>
+          `;
+          fragment.appendChild(div);
+        });
+        
+        list.appendChild(fragment);
+      } catch (error) {
+        list.innerHTML = '<div class="error">Error loading notes</div>';
+      }
+    }
+
+    // Helper Functions
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = event.target;
+        const original = btn.textContent;
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => btn.textContent = original, 2000);
+      });
+    }
+
+    // Predefined Templates
+    window.insertTemplate = function (templateType) {
+      const templates = {
+        html: `<!DOCTYPE html>
+<html>
+<head>
+    <title>Page Title</title>
+    <style>
+        /* CSS here */
+    </style>
+</head>
+<body>
+    <!-- Content here -->
+</body>
+</html>`,
+        css: `/* CSS Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Container */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}`,
+        javascript: `// Function example
+function exampleFunction(param) {
+    return new Promise((resolve, reject) => {
+        // Async operations here
+    });
+}
+
+// Event listener
+document.addEventListener('DOMContentLoaded', () => {
+    // Code here
+});`,
+        firebase: `// Firebase Configuration
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);`
+      };
+
+      document.getElementById("noteContent").value = templates[templateType] || '';
+      document.getElementById("noteCategory").value = "code";
+      document.getElementById("noteTitle").value = `${templateType.toUpperCase()} Template`;
+    };
+
+    // Expose functions to window
     window.toggleDarkMode = toggleDarkMode;
+    window.showTab = showTab;
+    window.copyToClipboard = copyToClipboard;
+    window.insertTemplate = insertTemplate;
   </script>
 
   <style>
@@ -170,6 +428,8 @@
       --primary-dark: #1e40af;
       --danger-color: #dc2626;
       --danger-dark: #991b1b;
+      --success-color: #16a34a;
+      --warning-color: #f59e0b;
       --bg-color: #ffffff;
       --text-color: #1f2937;
       --input-bg: #ffffff;
@@ -177,6 +437,7 @@
       --card-bg: #ffffff;
       --entry-bg: #f1f5f9;
       --shadow-color: rgba(0,0,0,0.1);
+      --tab-inactive: #94a3b8;
     }
 
     .dark-mode {
@@ -184,6 +445,8 @@
       --primary-dark: #1d4ed8;
       --danger-color: #ef4444;
       --danger-dark: #b91c1c;
+      --success-color: #22c55e;
+      --warning-color: #f59e0b;
       --bg-color: #0f172a;
       --text-color: #f1f5f9;
       --input-bg: #1e293b;
@@ -191,16 +454,22 @@
       --card-bg: #1e293b;
       --entry-bg: #334155;
       --shadow-color: rgba(0,0,0,0.3);
+      --tab-inactive: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
     }
 
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(135deg, #1e3a8a, #2563eb);
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       margin: 0;
+      padding: 20px;
       background-color: var(--bg-color);
       color: var(--text-color);
       transition: background-color 0.3s ease, color 0.3s ease;
@@ -208,26 +477,85 @@
 
     .container {
       width: 100%;
-      max-width: 520px;
+      max-width: 800px;
       background: var(--card-bg);
-      padding: 25px;
-      border-radius: 14px;
+      border-radius: 16px;
       box-shadow: 0 20px 40px var(--shadow-color);
+      overflow: hidden;
       transition: background-color 0.3s ease;
     }
 
-    h2 {
-      text-align: center;
+    .header {
+      background: var(--primary-color);
+      color: white;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h2 {
+      margin: 0;
+      color: white;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .tabs {
+      display: flex;
+      background: var(--entry-bg);
+      border-bottom: 2px solid var(--input-border);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 15px;
+      background: none;
+      border: none;
+      color: var(--tab-inactive);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .tab-btn.active {
       color: var(--primary-color);
-      margin-bottom: 15px;
+      background: var(--card-bg);
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--primary-color);
+    }
+
+    .tab-content {
+      padding: 25px;
+    }
+
+    .tab-content.hidden {
+      display: none;
     }
 
     h3 {
-      margin-top: 20px;
       color: var(--primary-color);
+      margin-top: 0;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--input-border);
     }
 
-    input {
+    input, textarea, select {
       width: 100%;
       padding: 12px;
       margin-top: 10px;
@@ -237,23 +565,35 @@
       background: var(--input-bg);
       color: var(--text-color);
       transition: all 0.3s ease;
+      font-family: 'Segoe UI', monospace;
     }
 
-    input:focus {
+    textarea {
+      min-height: 150px;
+      resize: vertical;
+    }
+
+    input:focus, textarea:focus, select:focus {
       outline: none;
       border-color: var(--primary-color);
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
 
-    button {
-      width: 100%;
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
       margin-top: 15px;
-      padding: 12px;
+    }
+
+    button {
+      padding: 12px 24px;
       background: var(--primary-color);
       color: white;
-      font-size: 16px;
+      font-size: 15px;
+      font-weight: 600;
       border: none;
-      border-radius: 10px;
+      border-radius: 8px;
       cursor: pointer;
       transition: all 0.2s ease;
       position: relative;
@@ -263,7 +603,7 @@
     button:hover:not(:disabled) {
       background: var(--primary-dark);
       transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(37, 99, 235, 0.4);
+      box-shadow: 0 6px 12px rgba(37, 99, 235, 0.3);
     }
 
     button:active:not(:disabled) {
@@ -271,8 +611,16 @@
     }
 
     button:disabled {
-      opacity: 0.7;
+      opacity: 0.6;
       cursor: not-allowed;
+    }
+
+    .logout-btn {
+      background: var(--danger-color);
+    }
+
+    .logout-btn:hover:not(:disabled) {
+      background: var(--danger-dark);
     }
 
     /* Ripple Effect */
@@ -291,7 +639,7 @@
       }
     }
 
-    /* Loading Spinner */
+    /* Spinner */
     .spinner {
       display: inline-block;
       width: 20px;
@@ -314,35 +662,166 @@
       to { transform: rotate(360deg); }
     }
 
-    /* Logout Button */
-    .logout {
-      background: var(--danger-color);
-      animation: pulse 2s infinite;
-    }
-
-    .logout:hover:not(:disabled) {
-      background: var(--danger-dark);
-      transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(220, 38, 38, 0.4);
-    }
-
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.6); }
-      70% { box-shadow: 0 0 0 12px rgba(220, 38, 38, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
-    }
-
-    /* Password Entries */
-    .entry {
+    /* Entries */
+    .entry, .note-entry {
       background: var(--entry-bg);
-      padding: 12px;
-      border-radius: 8px;
-      margin-top: 10px;
-      font-size: 14px;
-      transition: background-color 0.3s ease;
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 15px;
+      transition: all 0.3s ease;
+      border-left: 4px solid var(--primary-color);
     }
 
-    /* Fade-in Animation */
+    .note-entry.code {
+      border-left-color: #8b5cf6;
+    }
+
+    .note-entry.important {
+      border-left-color: #f59e0b;
+    }
+
+    .note-entry.general {
+      border-left-color: #10b981;
+    }
+
+    .entry-header, .note-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .entry-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 5px;
+      font-size: 16px;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+
+    .icon-btn:hover {
+      opacity: 1;
+      transform: scale(1.1);
+      background: none !important;
+    }
+
+    .edit-btn:hover {
+      color: var(--warning-color);
+    }
+
+    .delete-btn:hover {
+      color: var(--danger-color);
+    }
+
+    .entry-content {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .note-content {
+      background: var(--input-bg);
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 10px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .password-text {
+      font-family: 'Courier New', monospace;
+      background: var(--input-bg);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-right: 8px;
+    }
+
+    .copy-btn {
+      padding: 2px 8px;
+      font-size: 12px;
+      background: var(--success-color);
+      margin-left: 5px;
+    }
+
+    .copy-btn:hover {
+      background: var(--success-color);
+      opacity: 0.9;
+    }
+
+    .entry-date {
+      font-size: 12px;
+      color: var(--tab-inactive);
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--input-border);
+    }
+
+    .note-category {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    .note-category.code {
+      background: #8b5cf6;
+      color: white;
+    }
+
+    .note-category.important {
+      background: #f59e0b;
+      color: white;
+    }
+
+    .note-category.general {
+      background: #10b981;
+      color: white;
+    }
+
+    /* Templates */
+    .templates {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin: 15px 0;
+    }
+
+    .template-btn {
+      background: var(--entry-bg);
+      color: var(--text-color);
+      border: 1px solid var(--input-border);
+    }
+
+    .template-btn:hover {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    /* Empty State */
+    .empty-state, .error {
+      text-align: center;
+      padding: 40px;
+      color: var(--tab-inactive);
+      font-style: italic;
+    }
+
+    .error {
+      color: var(--danger-color);
+    }
+
+    /* Fade Animation */
     .fade-in {
       animation: fadeIn 0.5s ease forwards;
     }
@@ -360,94 +839,113 @@
 
     /* Dark Mode Toggle */
     .dark-mode-toggle {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: var(--card-bg);
-      border: 1px solid var(--input-border);
+      background: none;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      font-size: 18px;
+      padding: 8px;
       border-radius: 50%;
-      width: 40px;
-      height: 40px;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
       transition: all 0.3s ease;
-      box-shadow: 0 2px 8px var(--shadow-color);
     }
 
     .dark-mode-toggle:hover {
+      background: rgba(255, 255, 255, 0.1);
       transform: rotate(30deg);
     }
 
     .hidden {
-      display: none;
+      display: none !important;
     }
 
     span {
-      color: var(--text-color);
       font-weight: 600;
-      opacity: 0.8;
-    }
-
-    /* Header Actions */
-    .header-actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .mode-toggle {
-      background: var(--primary-color);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      padding: 6px 12px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: all 0.2s ease;
-    }
-
-    .mode-toggle:hover {
-      background: var(--primary-dark);
+      color: var(--primary-color);
     }
   </style>
 </head>
 <body>
 
-  <!-- Dark Mode Toggle -->
-  <div class="dark-mode-toggle" onclick="toggleDarkMode()">
-    🌙
-  </div>
-
-  <!-- LOGIN -->
+  <!-- LOGIN SCREEN -->
   <div class="container" id="loginBox">
-    <h2>🔐 Secure Vault Login</h2>
-    <input type="email" id="email" placeholder="Email" />
-    <input type="password" id="loginPassword" placeholder="Password" />
-    <button onclick="firebaseLogin()">Access Vault</button>
-  </div>
-
-  <!-- VAULT -->
-  <div class="container hidden" id="vaultBox">
-    <div class="header-actions">
-      <h2 style="margin: 0">🔑 My Password Vault</h2>
-      <button class="mode-toggle" onclick="toggleDarkMode()">
-        🌙 Dark Mode
+    <div class="header">
+      <h2>🔐 Secure Vault Login</h2>
+      <button class="dark-mode-toggle" onclick="toggleDarkMode()">
+        🌙
       </button>
     </div>
+    <div style="padding: 25px;">
+      <input type="email" id="email" placeholder="Email Address" />
+      <input type="password" id="loginPassword" placeholder="Password" />
+      <button onclick="firebaseLogin()" style="width: 100%; margin-top: 20px;">
+        Access Secure Vault
+      </button>
+    </div>
+  </div>
 
-    <input type="text" id="service" placeholder="Service / Website" />
-    <input type="text" id="username" placeholder="Username / Email" />
-    <input type="password" id="password" placeholder="Password" />
+  <!-- MAIN APP -->
+  <div class="container hidden" id="appContainer">
+    <div class="header">
+      <h2>🔐 Secure Vault & Notes</h2>
+      <div class="header-actions">
+        <button class="dark-mode-toggle" onclick="toggleDarkMode()">
+          🌙
+        </button>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </div>
 
-    <button onclick="savePassword()">Save Password</button>
-    <button class="logout" onclick="logout()">Logout</button>
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('passwordsTab')">🔑 Passwords</button>
+      <button class="tab-btn" onclick="showTab('notesTab')">📝 Notes & Code</button>
+    </div>
 
-    <h3>Saved Passwords</h3>
-    <div id="passwordList"></div>
+    <!-- PASSWORDS TAB -->
+    <div id="passwordsTab" class="tab-content">
+      <h3>Save New Password</h3>
+      <input type="text" id="service" placeholder="Service / Website" />
+      <input type="text" id="username" placeholder="Username / Email" />
+      <input type="password" id="password" placeholder="Password" />
+      <button id="savePasswordBtn" onclick="savePassword()" style="width: 100%; margin-top: 15px;">
+        Save Password
+      </button>
+
+      <h3 style="margin-top: 30px;">Saved Passwords</h3>
+      <div id="passwordList" class="entries-container">
+        <div class="empty-state">Loading passwords...</div>
+      </div>
+    </div>
+
+    <!-- NOTES TAB -->
+    <div id="notesTab" class="tab-content hidden">
+      <h3>Save New Note / Code Template</h3>
+      <input type="text" id="noteTitle" placeholder="Note Title" />
+      
+      <div class="form-row">
+        <select id="noteCategory">
+          <option value="code">💻 Code Template</option>
+          <option value="important">⭐ Important Note</option>
+          <option value="general">📝 General Note</option>
+        </select>
+        <div class="templates">
+          <button class="template-btn" onclick="insertTemplate('html')">HTML</button>
+          <button class="template-btn" onclick="insertTemplate('css')">CSS</button>
+          <button class="template-btn" onclick="insertTemplate('javascript')">JavaScript</button>
+          <button class="template-btn" onclick="insertTemplate('firebase')">Firebase</button>
+        </div>
+      </div>
+      
+      <textarea id="noteContent" placeholder="Enter your note or code here..."></textarea>
+      <button id="saveNoteBtn" onclick="saveNote()" style="width: 100%; margin-top: 15px;">
+        Save Note
+      </button>
+
+      <h3 style="margin-top: 30px;">Saved Notes</h3>
+      <div id="notesList" class="entries-container">
+        <div class="empty-state">Loading notes...</div>
+      </div>
+    </div>
   </div>
 
 </body>
