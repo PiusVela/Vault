@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Secure Password Vault</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Firebase v10 -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    /* 🔴 REPLACE WITH YOUR FIREBASE CONFIG */
+    const firebaseConfig = {
+      apiKey: "AIzaSyDSvQR6qhmjv_j8WxZNqKLy02LxOp3bwIE",
+      authDomain: "personal-password-vault.firebaseapp.com",
+      projectId: "personal-password-vault",
+      storageBucket: "personal-password-vault.firebasestorage.app",
+      messagingSenderId: "797352410974",
+      appId: "1:797352410974:web:c5bc78f5b866f199c059cf"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // Ripple Effect Function
+    function createRipple(event) {
+      const button = event.currentTarget;
+      const circle = document.createElement("span");
+      const diameter = Math.max(button.clientWidth, button.clientHeight);
+      const radius = diameter / 2;
+
+      const rect = button.getBoundingClientRect();
+      circle.style.width = circle.style.height = `${diameter}px`;
+      circle.style.left = `${event.clientX - rect.left - radius}px`;
+      circle.style.top = `${event.clientY - rect.top - radius}px`;
+      circle.classList.add("ripple");
+
+      const ripple = button.getElementsByClassName("ripple")[0];
+      if (ripple) ripple.remove();
+
+      button.appendChild(circle);
+    }
+
+    // Add ripple effect to all buttons
+    document.addEventListener('DOMContentLoaded', function() {
+      const buttons = document.querySelectorAll('button:not(.logout)');
+      buttons.forEach(button => {
+        button.addEventListener('click', createRipple);
+      });
+    });
+
+    // Toggle Dark Mode
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+      localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+    }
+
+    // Check for saved dark mode preference
+    document.addEventListener('DOMContentLoaded', function() {
+      if (localStorage.getItem('darkMode') === 'true') {
+        document.body.classList.add('dark-mode');
+      }
+    });
+
+    // LOGIN
+    window.firebaseLogin = async function () {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("loginPassword").value;
+      const loginBtn = document.querySelector('#loginBox button');
+      const originalText = loginBtn.innerHTML;
+
+      // Show loading spinner
+      loginBtn.innerHTML = '<div class="spinner"></div> Logging in...';
+      loginBtn.disabled = true;
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        document.getElementById("loginBox").classList.add("hidden");
+        document.getElementById("vaultBox").classList.remove("hidden");
+        await loadPasswords();
+      } catch (error) {
+        alert("Login failed. Check email or password.");
+      } finally {
+        // Restore button
+        loginBtn.innerHTML = originalText;
+        loginBtn.disabled = false;
+      }
+    };
+
+    // LOGOUT
+    window.logout = async function () {
+      await signOut(auth);
+      location.reload();
+    };
+
+    // SAVE PASSWORD
+    window.savePassword = async function () {
+      const service = document.getElementById("service").value;
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      const saveBtn = document.querySelector('#vaultBox button:first-of-type');
+      const originalText = saveBtn.innerHTML;
+
+      if (!service || !username || !password) {
+        alert("All fields are required");
+        return;
+      }
+
+      // Show loading spinner
+      saveBtn.innerHTML = '<div class="spinner small"></div> Saving...';
+      saveBtn.disabled = true;
+
+      try {
+        await addDoc(collection(db, "passwords"), {
+          service,
+          username,
+          password,
+          created: new Date()
+        });
+
+        document.getElementById("service").value = "";
+        document.getElementById("username").value = "";
+        document.getElementById("password").value = "";
+
+        await loadPasswords();
+      } catch (error) {
+        alert("Error saving password: " + error.message);
+      } finally {
+        // Restore button
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+      }
+    };
+
+    // LOAD PASSWORDS with fade-in effect
+    async function loadPasswords() {
+      const list = document.getElementById("passwordList");
+      list.innerHTML = "";
+      list.classList.remove('fade-in');
+
+      const querySnapshot = await getDocs(collection(db, "passwords"));
+      const fragment = document.createDocumentFragment();
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const div = document.createElement("div");
+        div.className = "entry fade-in";
+        div.innerHTML = `
+          <strong>${data.service}</strong><br>
+          <span>User:</span> ${data.username}<br>
+          <span>Password:</span> ${data.password}
+        `;
+        fragment.appendChild(div);
+      });
+      
+      list.appendChild(fragment);
+      list.classList.add('fade-in');
+    }
+
+    // Expose dark mode toggle to window
+    window.toggleDarkMode = toggleDarkMode;
+  </script>
+
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --primary-dark: #1e40af;
+      --danger-color: #dc2626;
+      --danger-dark: #991b1b;
+      --bg-color: #ffffff;
+      --text-color: #1f2937;
+      --input-bg: #ffffff;
+      --input-border: #cbd5e1;
+      --card-bg: #ffffff;
+      --entry-bg: #f1f5f9;
+      --shadow-color: rgba(0,0,0,0.1);
+    }
+
+    .dark-mode {
+      --primary-color: #3b82f6;
+      --primary-dark: #1d4ed8;
+      --danger-color: #ef4444;
+      --danger-dark: #b91c1c;
+      --bg-color: #0f172a;
+      --text-color: #f1f5f9;
+      --input-bg: #1e293b;
+      --input-border: #475569;
+      --card-bg: #1e293b;
+      --entry-bg: #334155;
+      --shadow-color: rgba(0,0,0,0.3);
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      background: var(--card-bg);
+      padding: 25px;
+      border-radius: 14px;
+      box-shadow: 0 20px 40px var(--shadow-color);
+      transition: background-color 0.3s ease;
+    }
+
+    h2 {
+      text-align: center;
+      color: var(--primary-color);
+      margin-bottom: 15px;
+    }
+
+    h3 {
+      margin-top: 20px;
+      color: var(--primary-color);
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      font-size: 15px;
+      background: var(--input-bg);
+      color: var(--text-color);
+      transition: all 0.3s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    button {
+      width: 100%;
+      margin-top: 15px;
+      padding: 12px;
+      background: var(--primary-color);
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(37, 99, 235, 0.4);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    /* Ripple Effect */
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.7);
+      transform: scale(0);
+      animation: ripple-animation 0.6s linear;
+    }
+
+    @keyframes ripple-animation {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    .spinner.small {
+      width: 16px;
+      height: 16px;
+      border-width: 2px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Logout Button */
+    .logout {
+      background: var(--danger-color);
+      animation: pulse 2s infinite;
+    }
+
+    .logout:hover:not(:disabled) {
+      background: var(--danger-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(220, 38, 38, 0.4);
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.6); }
+      70% { box-shadow: 0 0 0 12px rgba(220, 38, 38, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+    }
+
+    /* Password Entries */
+    .entry {
+      background: var(--entry-bg);
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 10px;
+      font-size: 14px;
+      transition: background-color 0.3s ease;
+    }
+
+    /* Fade-in Animation */
+    .fade-in {
+      animation: fadeIn 0.5s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Dark Mode Toggle */
+    .dark-mode-toggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: var(--card-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px var(--shadow-color);
+    }
+
+    .dark-mode-toggle:hover {
+      transform: rotate(30deg);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    span {
+      color: var(--text-color);
+      font-weight: 600;
+      opacity: 0.8;
+    }
+
+    /* Header Actions */
+    .header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .mode-toggle {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .mode-toggle:hover {
+      background: var(--primary-dark);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Dark Mode Toggle -->
+  <div class="dark-mode-toggle" onclick="toggleDarkMode()">
+    🌙
+  </div>
+
+  <!-- LOGIN -->
+  <div class="container" id="loginBox">
+    <h2>🔐 Secure Vault Login</h2>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="loginPassword" placeholder="Password" />
+    <button onclick="firebaseLogin()">Access Vault</button>
+  </div>
+
+  <!-- VAULT -->
+  <div class="container hidden" id="vaultBox">
+    <div class="header-actions">
+      <h2 style="margin: 0">🔑 My Password Vault</h2>
+      <button class="mode-toggle" onclick="toggleDarkMode()">
+        🌙 Dark Mode
+      </button>
+    </div>
+
+    <input type="text" id="service" placeholder="Service / Website" />
+    <input type="text" id="username" placeholder="Username / Email" />
+    <input type="password" id="password" placeholder="Password" />
+
+    <button onclick="savePassword()">Save Password</button>
+    <button class="logout" onclick="logout()">Logout</button>
+
+    <h3>Saved Passwords</h3>
+    <div id="passwordList"></div>
+  </div>
+
+</body>
+</html>
