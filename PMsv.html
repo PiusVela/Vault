@@ -32,6 +32,8 @@
       passwords: {},
       notes: {}
     };
+    let allPasswords = [];
+    let allNotes = [];
 
     // Load collapsed state from localStorage
     function loadCollapsedState() {
@@ -101,6 +103,113 @@
       document.getElementById("passwordsFormTitle").textContent = "Create New Password";
     }
 
+    // Search functions
+    function searchPasswords() {
+      const searchTerm = document.getElementById('searchPasswords').value.toLowerCase().trim();
+      const entries = document.querySelectorAll('#passwordList .entry');
+      let visibleCount = 0;
+      
+      entries.forEach(entry => {
+        if (entry.classList.contains('empty-state') || entry.classList.contains('error') || 
+            entry.classList.contains('search-info') || entry.classList.contains('collapse-controls')) {
+          return;
+        }
+        
+        const service = entry.querySelector('strong')?.textContent.toLowerCase() || '';
+        const username = entry.querySelector('.info-row:nth-child(1)')?.textContent.toLowerCase() || '';
+        const password = entry.querySelector('.password-text')?.textContent.toLowerCase() || '';
+        
+        const matches = service.includes(searchTerm) || 
+                       username.includes(searchTerm) || 
+                       password.includes(searchTerm);
+        
+        if (searchTerm === '' || matches) {
+          entry.style.display = 'block';
+          visibleCount++;
+        } else {
+          entry.style.display = 'none';
+        }
+      });
+      
+      // Update search info
+      let searchInfo = document.getElementById('passwordSearchInfo');
+      if (!searchInfo) {
+        searchInfo = document.createElement('div');
+        searchInfo.id = 'passwordSearchInfo';
+        searchInfo.className = 'search-info';
+        const controls = document.querySelector('#passwordList .collapse-controls');
+        if (controls) {
+          controls.after(searchInfo);
+        }
+      }
+      
+      if (searchTerm === '') {
+        searchInfo.innerHTML = '';
+      } else {
+        const total = document.querySelectorAll('#passwordList .entry:not(.empty-state):not(.error):not(.search-info):not(.collapse-controls)').length;
+        searchInfo.innerHTML = `<span>🔍 Found ${visibleCount} of ${total} passwords</span> 
+                                <button class="clear-search-btn" onclick="clearPasswordSearch()">Clear</button>`;
+      }
+    }
+
+    function clearPasswordSearch() {
+      document.getElementById('searchPasswords').value = '';
+      searchPasswords();
+    }
+
+    function searchNotes() {
+      const searchTerm = document.getElementById('searchNotes').value.toLowerCase().trim();
+      const entries = document.querySelectorAll('#notesList .note-entry');
+      let visibleCount = 0;
+      
+      entries.forEach(entry => {
+        if (entry.classList.contains('empty-state') || entry.classList.contains('error') || 
+            entry.classList.contains('search-info') || entry.classList.contains('collapse-controls')) {
+          return;
+        }
+        
+        const title = entry.querySelector('strong')?.textContent.toLowerCase() || '';
+        const category = entry.querySelector('.note-category')?.textContent.toLowerCase() || '';
+        const content = entry.querySelector('.note-content')?.textContent.toLowerCase() || '';
+        
+        const matches = title.includes(searchTerm) || 
+                       category.includes(searchTerm) || 
+                       content.includes(searchTerm);
+        
+        if (searchTerm === '' || matches) {
+          entry.style.display = 'block';
+          visibleCount++;
+        } else {
+          entry.style.display = 'none';
+        }
+      });
+      
+      // Update search info
+      let searchInfo = document.getElementById('noteSearchInfo');
+      if (!searchInfo) {
+        searchInfo = document.createElement('div');
+        searchInfo.id = 'noteSearchInfo';
+        searchInfo.className = 'search-info';
+        const controls = document.querySelector('#notesList .collapse-controls');
+        if (controls) {
+          controls.after(searchInfo);
+        }
+      }
+      
+      if (searchTerm === '') {
+        searchInfo.innerHTML = '';
+      } else {
+        const total = document.querySelectorAll('#notesList .note-entry:not(.empty-state):not(.error):not(.search-info):not(.collapse-controls)').length;
+        searchInfo.innerHTML = `<span>🔍 Found ${visibleCount} of ${total} notes</span> 
+                                <button class="clear-search-btn" onclick="clearNoteSearch()">Clear</button>`;
+      }
+    }
+
+    function clearNoteSearch() {
+      document.getElementById('searchNotes').value = '';
+      searchNotes();
+    }
+
     // Initialize app
     document.addEventListener('DOMContentLoaded', async function() {
       loadCollapsedState();
@@ -114,6 +223,7 @@
       // Check dark mode preference
       if (localStorage.getItem('darkMode') === 'true') {
         document.body.classList.add('dark-mode');
+        updateDarkModeToggleIcon();
       }
 
       // Check auth state
@@ -131,6 +241,15 @@
         }
       });
     });
+
+    // Update dark mode toggle icon
+    function updateDarkModeToggleIcon() {
+      const toggleButtons = document.querySelectorAll('.dark-mode-toggle');
+      const isDarkMode = document.body.classList.contains('dark-mode');
+      toggleButtons.forEach(btn => {
+        btn.innerHTML = isDarkMode ? '☀️' : '🌙';
+      });
+    }
 
     // Ripple Effect
     function createRipple(event) {
@@ -157,6 +276,7 @@
     function toggleDarkMode() {
       document.body.classList.toggle('dark-mode');
       localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+      updateDarkModeToggleIcon();
     }
 
     // Tab Navigation
@@ -300,29 +420,43 @@
           where("userId", "==", currentUser.uid)
         );
         const querySnapshot = await getDocs(q);
-        const fragment = document.createDocumentFragment();
+        allPasswords = [];
         
         if (querySnapshot.empty) {
           list.innerHTML = '<div class="empty-state">No passwords saved yet</div>';
           return;
         }
 
-        // Add collapse controls
+        // Add search bar and collapse controls
         const controls = document.createElement('div');
-        controls.className = 'collapse-controls';
+        controls.className = 'search-controls';
         controls.innerHTML = `
-          <button onclick="toggleAllPasswords(true)" class="collapse-all-btn">
-            <span>▶</span> Collapse All
-          </button>
-          <button onclick="toggleAllPasswords(false)" class="expand-all-btn">
-            <span>▼</span> Expand All
-          </button>
+          <div class="search-box">
+            <input type="text" id="searchPasswords" placeholder="🔍 Search passwords..." 
+                   oninput="searchPasswords()" />
+            <button class="clear-search-btn" onclick="clearPasswordSearch()">✕</button>
+          </div>
+          <div class="collapse-controls">
+            <button onclick="toggleAllPasswords(true)" class="collapse-all-btn">
+              <span>▶</span> Collapse All
+            </button>
+            <button onclick="toggleAllPasswords(false)" class="expand-all-btn">
+              <span>▼</span> Expand All
+            </button>
+          </div>
         `;
         list.innerHTML = '';
         list.appendChild(controls);
 
+        const fragment = document.createDocumentFragment();
+        
         querySnapshot.forEach((doc) => {
           const data = doc.data();
+          allPasswords.push({
+            id: doc.id,
+            ...data
+          });
+          
           const isCollapsed = collapsedState.passwords[doc.id] || false;
           const div = document.createElement("div");
           div.className = "entry fade-in";
@@ -482,29 +616,43 @@
           where("userId", "==", currentUser.uid)
         );
         const querySnapshot = await getDocs(q);
-        const fragment = document.createDocumentFragment();
+        allNotes = [];
         
         if (querySnapshot.empty) {
           list.innerHTML = '<div class="empty-state">No notes saved yet</div>';
           return;
         }
 
-        // Add collapse controls
+        // Add search bar and collapse controls
         const controls = document.createElement('div');
-        controls.className = 'collapse-controls';
+        controls.className = 'search-controls';
         controls.innerHTML = `
-          <button onclick="toggleAllNotes(true)" class="collapse-all-btn">
-            <span>▶</span> Collapse All
-          </button>
-          <button onclick="toggleAllNotes(false)" class="expand-all-btn">
-            <span>▼</span> Expand All
-          </button>
+          <div class="search-box">
+            <input type="text" id="searchNotes" placeholder="🔍 Search notes..." 
+                   oninput="searchNotes()" />
+            <button class="clear-search-btn" onclick="clearNoteSearch()">✕</button>
+          </div>
+          <div class="collapse-controls">
+            <button onclick="toggleAllNotes(true)" class="collapse-all-btn">
+              <span>▶</span> Collapse All
+            </button>
+            <button onclick="toggleAllNotes(false)" class="expand-all-btn">
+              <span>▼</span> Expand All
+            </button>
+          </div>
         `;
         list.innerHTML = '';
         list.appendChild(controls);
 
+        const fragment = document.createDocumentFragment();
+        
         querySnapshot.forEach((doc) => {
           const data = doc.data();
+          allNotes.push({
+            id: doc.id,
+            ...data
+          });
+          
           const isCollapsed = collapsedState.notes[doc.id] || false;
           const div = document.createElement("div");
           div.className = `note-entry fade-in ${data.category}`;
@@ -641,6 +789,10 @@ const app = initializeApp(firebaseConfig);`
     window.insertTemplate = insertTemplate;
     window.resetNoteForm = resetNoteForm;
     window.resetPasswordForm = resetPasswordForm;
+    window.searchPasswords = searchPasswords;
+    window.searchNotes = searchNotes;
+    window.clearPasswordSearch = clearPasswordSearch;
+    window.clearNoteSearch = clearNoteSearch;
   </script>
 
   <style>
@@ -652,6 +804,7 @@ const app = initializeApp(firebaseConfig);`
       --success-color: #16a34a;
       --warning-color: #f59e0b;
       --update-color: #f59e0b;
+      --bg-gradient: linear-gradient(135deg, #1e3a8a, #2563eb);
       --bg-color: #ffffff;
       --text-color: #1f2937;
       --input-bg: #ffffff;
@@ -662,6 +815,7 @@ const app = initializeApp(firebaseConfig);`
       --tab-inactive: #94a3b8;
       --scrollbar-thumb: #cbd5e1;
       --scrollbar-track: #f1f5f9;
+      --search-highlight: #fef3c7;
     }
 
     .dark-mode {
@@ -672,6 +826,7 @@ const app = initializeApp(firebaseConfig);`
       --success-color: #22c55e;
       --warning-color: #f59e0b;
       --update-color: #f59e0b;
+      --bg-gradient: linear-gradient(135deg, #1e293b, #334155); /* Grey gradient for dark mode */
       --bg-color: #0f172a;
       --text-color: #f1f5f9;
       --input-bg: #1e293b;
@@ -682,6 +837,7 @@ const app = initializeApp(firebaseConfig);`
       --tab-inactive: #64748b;
       --scrollbar-thumb: #475569;
       --scrollbar-track: #1e293b;
+      --search-highlight: #7c2d12;
     }
 
     * {
@@ -690,7 +846,7 @@ const app = initializeApp(firebaseConfig);`
 
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      background: var(--bg-gradient);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -699,7 +855,7 @@ const app = initializeApp(firebaseConfig);`
       padding: 20px;
       background-color: var(--bg-color);
       color: var(--text-color);
-      transition: background-color 0.3s ease, color 0.3s ease;
+      transition: all 0.5s ease;
     }
 
     .container {
@@ -709,7 +865,7 @@ const app = initializeApp(firebaseConfig);`
       border-radius: 16px;
       box-shadow: 0 20px 40px var(--shadow-color);
       overflow: hidden;
-      transition: background-color 0.3s ease;
+      transition: all 0.3s ease;
     }
 
     .header {
@@ -719,6 +875,7 @@ const app = initializeApp(firebaseConfig);`
       display: flex;
       justify-content: space-between;
       align-items: center;
+      transition: all 0.3s ease;
     }
 
     .header h2 {
@@ -736,6 +893,7 @@ const app = initializeApp(firebaseConfig);`
       display: flex;
       background: var(--entry-bg);
       border-bottom: 2px solid var(--input-border);
+      transition: all 0.3s ease;
     }
 
     .tab-btn {
@@ -798,6 +956,84 @@ const app = initializeApp(firebaseConfig);`
     .form-actions {
       display: flex;
       gap: 10px;
+    }
+
+    /* Search Controls */
+    .search-controls {
+      margin-bottom: 15px;
+    }
+
+    .search-box {
+      position: relative;
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .search-box input {
+      flex: 1;
+      padding: 12px 40px 12px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text-color);
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .clear-search-btn {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--tab-inactive);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .clear-search-btn:hover {
+      background: var(--entry-bg);
+      color: var(--danger-color);
+    }
+
+    .search-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: var(--entry-bg);
+      border-radius: 8px;
+      margin-bottom: 10px;
+      font-size: 14px;
+      color: var(--tab-inactive);
+    }
+
+    .search-info span {
+      color: var(--primary-color);
+      font-weight: 600;
+    }
+
+    .search-info .clear-search-btn {
+      position: static;
+      transform: none;
+      padding: 4px 8px;
+      font-size: 12px;
+      background: var(--tab-inactive);
+      color: white;
+    }
+
+    .search-info .clear-search-btn:hover {
+      background: var(--danger-color);
     }
 
     input, textarea, select {
@@ -1226,6 +1462,11 @@ const app = initializeApp(firebaseConfig);`
       border-radius: 50%;
       cursor: pointer;
       transition: all 0.3s ease;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .dark-mode-toggle:hover {
