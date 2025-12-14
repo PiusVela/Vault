@@ -77,6 +77,30 @@
       saveCollapsedState();
     }
 
+    // Reset note form to create mode
+    function resetNoteForm() {
+      editingNoteId = null;
+      document.getElementById("noteTitle").value = "";
+      document.getElementById("noteContent").value = "";
+      document.getElementById("noteCategory").value = "code";
+      document.getElementById("saveNoteBtn").textContent = "Create Note";
+      document.getElementById("saveNoteBtn").classList.remove("update-mode");
+      document.getElementById("cancelEditBtn").classList.add("hidden");
+      document.getElementById("notesFormTitle").textContent = "Create New Note";
+    }
+
+    // Reset password form to create mode
+    function resetPasswordForm() {
+      editingPasswordId = null;
+      document.getElementById("service").value = "";
+      document.getElementById("username").value = "";
+      document.getElementById("password").value = "";
+      document.getElementById("savePasswordBtn").textContent = "Create Password";
+      document.getElementById("savePasswordBtn").classList.remove("update-mode");
+      document.getElementById("cancelPasswordEditBtn").classList.add("hidden");
+      document.getElementById("passwordsFormTitle").textContent = "Create New Password";
+    }
+
     // Initialize app
     document.addEventListener('DOMContentLoaded', async function() {
       loadCollapsedState();
@@ -182,7 +206,7 @@
       const username = document.getElementById("username").value.trim();
       const password = document.getElementById("password").value.trim();
       const saveBtn = document.querySelector('#savePasswordBtn');
-      const originalText = saveBtn.innerHTML;
+      const originalText = saveBtn.textContent;
 
       if (!service || !username || !password) {
         alert("All fields are required");
@@ -194,6 +218,7 @@
 
       try {
         if (editingPasswordId) {
+          // Update existing password
           await updateDoc(doc(db, "passwords", editingPasswordId), {
             userId: currentUser.uid,
             service,
@@ -201,9 +226,9 @@
             password,
             updated: new Date()
           });
-          editingPasswordId = null;
-          document.getElementById("savePasswordBtn").textContent = "Save Password";
+          resetPasswordForm();
         } else {
+          // Create new password
           await addDoc(collection(db, "passwords"), {
             userId: currentUser.uid,
             service,
@@ -212,11 +237,12 @@
             created: new Date(),
             updated: new Date()
           });
+          
+          // Clear form after creating
+          document.getElementById("service").value = "";
+          document.getElementById("username").value = "";
+          document.getElementById("password").value = "";
         }
-
-        document.getElementById("service").value = "";
-        document.getElementById("username").value = "";
-        document.getElementById("password").value = "";
 
         await loadPasswords();
       } catch (error) {
@@ -234,8 +260,15 @@
       document.getElementById("username").value = username;
       document.getElementById("password").value = password;
       document.getElementById("savePasswordBtn").textContent = "Update Password";
+      document.getElementById("savePasswordBtn").classList.add("update-mode");
+      document.getElementById("cancelPasswordEditBtn").classList.remove("hidden");
+      document.getElementById("passwordsFormTitle").textContent = "Edit Password";
       showTab('passwordsTab');
       document.getElementById("service").focus();
+    };
+
+    window.cancelPasswordEdit = function() {
+      resetPasswordForm();
     };
 
     window.deletePassword = async function (id) {
@@ -355,7 +388,7 @@
       const content = document.getElementById("noteContent").value.trim();
       const category = document.getElementById("noteCategory").value;
       const saveBtn = document.querySelector('#saveNoteBtn');
-      const originalText = saveBtn.innerHTML;
+      const originalText = saveBtn.textContent;
 
       if (!title || !content) {
         alert("Title and content are required");
@@ -367,6 +400,7 @@
 
       try {
         if (editingNoteId) {
+          // Update existing note
           await updateDoc(doc(db, "notes", editingNoteId), {
             userId: currentUser.uid,
             title,
@@ -374,9 +408,9 @@
             category,
             updated: new Date()
           });
-          editingNoteId = null;
-          document.getElementById("saveNoteBtn").textContent = "Save Note";
+          resetNoteForm();
         } else {
+          // Create new note
           await addDoc(collection(db, "notes"), {
             userId: currentUser.uid,
             title,
@@ -385,11 +419,12 @@
             created: new Date(),
             updated: new Date()
           });
+          
+          // Clear form after creating
+          document.getElementById("noteTitle").value = "";
+          document.getElementById("noteContent").value = "";
+          document.getElementById("noteCategory").value = "code";
         }
-
-        document.getElementById("noteTitle").value = "";
-        document.getElementById("noteContent").value = "";
-        document.getElementById("noteCategory").value = "code";
 
         await loadNotes();
       } catch (error) {
@@ -407,8 +442,15 @@
       document.getElementById("noteContent").value = content;
       document.getElementById("noteCategory").value = category;
       document.getElementById("saveNoteBtn").textContent = "Update Note";
+      document.getElementById("saveNoteBtn").classList.add("update-mode");
+      document.getElementById("cancelEditBtn").classList.remove("hidden");
+      document.getElementById("notesFormTitle").textContent = "Edit Note";
       showTab('notesTab');
       document.getElementById("noteTitle").focus();
+    };
+
+    window.cancelNoteEdit = function() {
+      resetNoteForm();
     };
 
     window.deleteNote = async function (id) {
@@ -482,7 +524,9 @@
               </div>
             </div>
             <div class="collapsible-content ${isCollapsed ? 'collapsed' : ''}">
-              <pre class="note-content">${escapeHtml(data.content)}</pre>
+              <div class="note-content-wrapper">
+                <pre class="note-content scrollable">${escapeHtml(data.content)}</pre>
+              </div>
               <div class="entry-date">
                 Created: ${data.created?.toDate?.()?.toLocaleDateString() || 'N/A'}
                 ${data.updated ? ' | Updated: ' + data.updated.toDate().toLocaleDateString() : ''}
@@ -587,6 +631,7 @@ const app = initializeApp(firebaseConfig);`
       document.getElementById("noteContent").value = templates[templateType] || '';
       document.getElementById("noteCategory").value = "code";
       document.getElementById("noteTitle").value = `${templateType.toUpperCase()} Template`;
+      document.getElementById("saveNoteBtn").focus();
     };
 
     // Expose functions to window
@@ -594,6 +639,8 @@ const app = initializeApp(firebaseConfig);`
     window.showTab = showTab;
     window.copyToClipboard = copyToClipboard;
     window.insertTemplate = insertTemplate;
+    window.resetNoteForm = resetNoteForm;
+    window.resetPasswordForm = resetPasswordForm;
   </script>
 
   <style>
@@ -604,6 +651,7 @@ const app = initializeApp(firebaseConfig);`
       --danger-dark: #991b1b;
       --success-color: #16a34a;
       --warning-color: #f59e0b;
+      --update-color: #f59e0b;
       --bg-color: #ffffff;
       --text-color: #1f2937;
       --input-bg: #ffffff;
@@ -612,6 +660,8 @@ const app = initializeApp(firebaseConfig);`
       --entry-bg: #f1f5f9;
       --shadow-color: rgba(0,0,0,0.1);
       --tab-inactive: #94a3b8;
+      --scrollbar-thumb: #cbd5e1;
+      --scrollbar-track: #f1f5f9;
     }
 
     .dark-mode {
@@ -621,6 +671,7 @@ const app = initializeApp(firebaseConfig);`
       --danger-dark: #b91c1c;
       --success-color: #22c55e;
       --warning-color: #f59e0b;
+      --update-color: #f59e0b;
       --bg-color: #0f172a;
       --text-color: #f1f5f9;
       --input-bg: #1e293b;
@@ -629,6 +680,8 @@ const app = initializeApp(firebaseConfig);`
       --entry-bg: #334155;
       --shadow-color: rgba(0,0,0,0.3);
       --tab-inactive: #64748b;
+      --scrollbar-thumb: #475569;
+      --scrollbar-track: #1e293b;
     }
 
     * {
@@ -729,6 +782,24 @@ const app = initializeApp(firebaseConfig);`
       border-bottom: 2px solid var(--input-border);
     }
 
+    .form-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .form-header h4 {
+      margin: 0;
+      color: var(--text-color);
+      font-size: 18px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+    }
+
     input, textarea, select {
       width: 100%;
       padding: 12px;
@@ -787,6 +858,23 @@ const app = initializeApp(firebaseConfig);`
     button:disabled {
       opacity: 0.6;
       cursor: not-allowed;
+    }
+
+    button.update-mode {
+      background: var(--update-color);
+    }
+
+    button.update-mode:hover:not(:disabled) {
+      background: #d97706;
+      box-shadow: 0 6px 12px rgba(245, 158, 11, 0.3);
+    }
+
+    .cancel-btn {
+      background: var(--tab-inactive);
+    }
+
+    .cancel-btn:hover {
+      background: #64748b;
     }
 
     .logout-btn {
@@ -893,15 +981,60 @@ const app = initializeApp(firebaseConfig);`
     /* Collapsible Content */
     .collapsible-content {
       overflow: hidden;
-      transition: max-height 0.3s ease, opacity 0.3s ease;
+      transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+      max-height: 0;
+      opacity: 0;
+    }
+
+    .collapsible-content:not(.collapsed) {
       max-height: 500px;
       opacity: 1;
     }
 
-    .collapsible-content.collapsed {
-      max-height: 0;
-      opacity: 0;
-      overflow: hidden;
+    /* Note Content Wrapper */
+    .note-content-wrapper {
+      max-height: 300px;
+      overflow-y: auto;
+      margin: 10px 0;
+      border-radius: 8px;
+      background: var(--input-bg);
+    }
+
+    /* Note Content with Scrollbar */
+    .note-content {
+      padding: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    /* Scrollbar Styling */
+    .note-content-wrapper::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .note-content-wrapper::-webkit-scrollbar-track {
+      background: var(--scrollbar-track);
+      border-radius: 4px;
+    }
+
+    .note-content-wrapper::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 4px;
+    }
+
+    .note-content-wrapper::-webkit-scrollbar-thumb:hover {
+      background: var(--primary-color);
+    }
+
+    /* For Firefox */
+    .note-content-wrapper {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
     }
 
     /* Entries */
@@ -981,18 +1114,6 @@ const app = initializeApp(firebaseConfig);`
       align-items: center;
       gap: 8px;
       flex-wrap: wrap;
-    }
-
-    .note-content {
-      background: var(--input-bg);
-      padding: 15px;
-      border-radius: 8px;
-      overflow-x: auto;
-      margin: 10px 0;
-      font-family: 'Courier New', monospace;
-      font-size: 13px;
-      white-space: pre-wrap;
-      word-break: break-all;
     }
 
     .password-text {
@@ -1161,13 +1282,22 @@ const app = initializeApp(firebaseConfig);`
 
     <!-- PASSWORDS TAB -->
     <div id="passwordsTab" class="tab-content">
-      <h3>Save New Password</h3>
+      <div class="form-header">
+        <h4 id="passwordsFormTitle">Create New Password</h4>
+        <div class="form-actions">
+          <button class="cancel-btn hidden" id="cancelPasswordEditBtn" onclick="cancelPasswordEdit()">Cancel Edit</button>
+        </div>
+      </div>
+      
       <input type="text" id="service" placeholder="Service / Website" />
       <input type="text" id="username" placeholder="Username / Email" />
       <input type="password" id="password" placeholder="Password" />
-      <button id="savePasswordBtn" onclick="savePassword()" style="width: 100%; margin-top: 15px;">
-        Save Password
-      </button>
+      
+      <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <button id="savePasswordBtn" onclick="savePassword()" style="flex: 1;">
+          Create Password
+        </button>
+      </div>
 
       <h3 style="margin-top: 30px;">Saved Passwords</h3>
       <div id="passwordList" class="passwords-list">
@@ -1177,7 +1307,13 @@ const app = initializeApp(firebaseConfig);`
 
     <!-- NOTES TAB -->
     <div id="notesTab" class="tab-content hidden">
-      <h3>Save New Note / Code Template</h3>
+      <div class="form-header">
+        <h4 id="notesFormTitle">Create New Note</h4>
+        <div class="form-actions">
+          <button class="cancel-btn hidden" id="cancelEditBtn" onclick="cancelNoteEdit()">Cancel Edit</button>
+        </div>
+      </div>
+      
       <input type="text" id="noteTitle" placeholder="Note Title" />
       
       <div class="form-row">
@@ -1195,9 +1331,12 @@ const app = initializeApp(firebaseConfig);`
       </div>
       
       <textarea id="noteContent" placeholder="Enter your note or code here..."></textarea>
-      <button id="saveNoteBtn" onclick="saveNote()" style="width: 100%; margin-top: 15px;">
-        Save Note
-      </button>
+      
+      <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <button id="saveNoteBtn" onclick="saveNote()" style="flex: 1;">
+          Create Note
+        </button>
+      </div>
 
       <h3 style="margin-top: 30px;">Saved Notes</h3>
       <div id="notesList" class="notes-list">
