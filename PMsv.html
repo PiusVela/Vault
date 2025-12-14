@@ -34,6 +34,10 @@
     };
     let allPasswords = [];
     let allNotes = [];
+    let lastSearchResults = {
+      passwords: [],
+      notes: []
+    };
 
     // Load collapsed state from localStorage
     function loadCollapsedState() {
@@ -108,6 +112,7 @@
       const searchTerm = document.getElementById('searchPasswords').value.toLowerCase().trim();
       const entries = document.querySelectorAll('#passwordList .entry');
       let visibleCount = 0;
+      lastSearchResults.passwords = [];
       
       entries.forEach(entry => {
         if (entry.classList.contains('empty-state') || entry.classList.contains('error') || 
@@ -126,8 +131,16 @@
         if (searchTerm === '' || matches) {
           entry.style.display = 'block';
           visibleCount++;
+          if (searchTerm !== '' && matches) {
+            lastSearchResults.passwords.push(entry.dataset.id);
+            // Add highlight to matching text
+            highlightMatches(entry, searchTerm);
+          } else {
+            removeHighlights(entry);
+          }
         } else {
           entry.style.display = 'none';
+          removeHighlights(entry);
         }
       });
       
@@ -145,10 +158,74 @@
       
       if (searchTerm === '') {
         searchInfo.innerHTML = '';
+        removeAllHighlights('passwords');
       } else {
         const total = document.querySelectorAll('#passwordList .entry:not(.empty-state):not(.error):not(.search-info):not(.collapse-controls)').length;
-        searchInfo.innerHTML = `<span>🔍 Found ${visibleCount} of ${total} passwords</span> 
-                                <button class="clear-search-btn" onclick="clearPasswordSearch()">Clear</button>`;
+        searchInfo.innerHTML = `
+          <div class="search-results-info">
+            <span>🔍 Found ${visibleCount} of ${total} passwords</span>
+            <div class="search-actions">
+              ${visibleCount > 0 ? `<button class="view-results-btn" onclick="viewSearchResults('passwords')">🔍 View Results</button>` : ''}
+              <button class="clear-search-btn" onclick="clearPasswordSearch()">Clear</button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function viewSearchResults(type) {
+      if (type === 'passwords' && lastSearchResults.passwords.length > 0) {
+        // Collapse all first
+        toggleAllCollapse('passwords', true);
+        
+        // Expand and highlight search results
+        setTimeout(() => {
+          lastSearchResults.passwords.forEach(id => {
+            const entry = document.querySelector(`.entry[data-id="${id}"]`);
+            if (entry) {
+              const content = entry.querySelector('.collapsible-content');
+              const indicator = entry.querySelector('.collapse-indicator');
+              if (content) {
+                content.classList.remove('collapsed');
+                // Scroll into view with smooth animation
+                setTimeout(() => {
+                  entry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                  entry.classList.add('search-highlight');
+                  setTimeout(() => entry.classList.remove('search-highlight'), 2000);
+                }, 100);
+              }
+              if (indicator) {
+                indicator.textContent = '▼';
+              }
+            }
+          });
+        }, 300);
+      } else if (type === 'notes' && lastSearchResults.notes.length > 0) {
+        // Collapse all first
+        toggleAllCollapse('notes', true);
+        
+        // Expand and highlight search results
+        setTimeout(() => {
+          lastSearchResults.notes.forEach(id => {
+            const entry = document.querySelector(`.note-entry[data-id="${id}"]`);
+            if (entry) {
+              const content = entry.querySelector('.collapsible-content');
+              const indicator = entry.querySelector('.collapse-indicator');
+              if (content) {
+                content.classList.remove('collapsed');
+                // Scroll into view with smooth animation
+                setTimeout(() => {
+                  entry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                  entry.classList.add('search-highlight');
+                  setTimeout(() => entry.classList.remove('search-highlight'), 2000);
+                }, 100);
+              }
+              if (indicator) {
+                indicator.textContent = '▼';
+              }
+            }
+          });
+        }, 300);
       }
     }
 
@@ -161,6 +238,7 @@
       const searchTerm = document.getElementById('searchNotes').value.toLowerCase().trim();
       const entries = document.querySelectorAll('#notesList .note-entry');
       let visibleCount = 0;
+      lastSearchResults.notes = [];
       
       entries.forEach(entry => {
         if (entry.classList.contains('empty-state') || entry.classList.contains('error') || 
@@ -179,8 +257,16 @@
         if (searchTerm === '' || matches) {
           entry.style.display = 'block';
           visibleCount++;
+          if (searchTerm !== '' && matches) {
+            lastSearchResults.notes.push(entry.dataset.id);
+            // Add highlight to matching text
+            highlightMatches(entry, searchTerm);
+          } else {
+            removeHighlights(entry);
+          }
         } else {
           entry.style.display = 'none';
+          removeHighlights(entry);
         }
       });
       
@@ -198,16 +284,72 @@
       
       if (searchTerm === '') {
         searchInfo.innerHTML = '';
+        removeAllHighlights('notes');
       } else {
         const total = document.querySelectorAll('#notesList .note-entry:not(.empty-state):not(.error):not(.search-info):not(.collapse-controls)').length;
-        searchInfo.innerHTML = `<span>🔍 Found ${visibleCount} of ${total} notes</span> 
-                                <button class="clear-search-btn" onclick="clearNoteSearch()">Clear</button>`;
+        searchInfo.innerHTML = `
+          <div class="search-results-info">
+            <span>🔍 Found ${visibleCount} of ${total} notes</span>
+            <div class="search-actions">
+              ${visibleCount > 0 ? `<button class="view-results-btn" onclick="viewSearchResults('notes')">🔍 View Results</button>` : ''}
+              <button class="clear-search-btn" onclick="clearNoteSearch()">Clear</button>
+            </div>
+          </div>
+        `;
       }
     }
 
     function clearNoteSearch() {
       document.getElementById('searchNotes').value = '';
       searchNotes();
+    }
+
+    // Highlight text matches
+    function highlightMatches(element, searchTerm) {
+      if (!searchTerm) return;
+      
+      // Highlight in title/strong elements
+      const strongElements = element.querySelectorAll('strong');
+      strongElements.forEach(el => {
+        const text = el.textContent;
+        const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
+        const highlighted = text.replace(regex, '<span class="highlight-match">$1</span>');
+        if (highlighted !== text) {
+          el.innerHTML = highlighted;
+        }
+      });
+      
+      // Highlight in content
+      const contentElements = element.querySelectorAll('.note-content, .info-row, .password-text');
+      contentElements.forEach(el => {
+        const text = el.textContent;
+        const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
+        const highlighted = text.replace(regex, '<span class="highlight-match">$1</span>');
+        if (highlighted !== text) {
+          el.innerHTML = highlighted;
+        }
+      });
+    }
+
+    function removeHighlights(element) {
+      const highlighted = element.querySelectorAll('.highlight-match');
+      highlighted.forEach(el => {
+        const parent = el.parentNode;
+        if (parent) {
+          parent.replaceChild(document.createTextNode(el.textContent), el);
+          parent.normalize();
+        }
+      });
+    }
+
+    function removeAllHighlights(type) {
+      const selector = type === 'passwords' ? '#passwordList .entry' : '#notesList .note-entry';
+      const entries = document.querySelectorAll(selector);
+      entries.forEach(entry => removeHighlights(entry));
+    }
+
+    function escapeRegExp(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
     // Initialize app
@@ -793,6 +935,7 @@ const app = initializeApp(firebaseConfig);`
     window.searchNotes = searchNotes;
     window.clearPasswordSearch = clearPasswordSearch;
     window.clearNoteSearch = clearNoteSearch;
+    window.viewSearchResults = viewSearchResults;
   </script>
 
   <style>
@@ -816,6 +959,8 @@ const app = initializeApp(firebaseConfig);`
       --scrollbar-thumb: #cbd5e1;
       --scrollbar-track: #f1f5f9;
       --search-highlight: #fef3c7;
+      --highlight-match: #fef3c7;
+      --highlight-match-dark: #7c2d12;
     }
 
     .dark-mode {
@@ -826,7 +971,7 @@ const app = initializeApp(firebaseConfig);`
       --success-color: #22c55e;
       --warning-color: #f59e0b;
       --update-color: #f59e0b;
-      --bg-gradient: linear-gradient(135deg, #1e293b, #334155); /* Grey gradient for dark mode */
+      --bg-gradient: linear-gradient(135deg, #1e293b, #334155);
       --bg-color: #0f172a;
       --text-color: #f1f5f9;
       --input-bg: #1e293b;
@@ -837,7 +982,8 @@ const app = initializeApp(firebaseConfig);`
       --tab-inactive: #64748b;
       --scrollbar-thumb: #475569;
       --scrollbar-track: #1e293b;
-      --search-highlight: #7c2d12;
+      --search-highlight: #374151;
+      --highlight-match: #7c2d12;
     }
 
     * {
@@ -1006,34 +1152,99 @@ const app = initializeApp(firebaseConfig);`
       color: var(--danger-color);
     }
 
+    /* Search Results Info */
     .search-info {
+      padding: 12px;
+      background: var(--entry-bg);
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-size: 14px;
+      color: var(--tab-inactive);
+      border-left: 4px solid var(--primary-color);
+    }
+
+    .search-results-info {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 12px;
-      background: var(--entry-bg);
-      border-radius: 8px;
-      margin-bottom: 10px;
-      font-size: 14px;
-      color: var(--tab-inactive);
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
-    .search-info span {
+    .search-results-info span {
       color: var(--primary-color);
       font-weight: 600;
+      font-size: 14px;
+    }
+
+    .search-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .view-results-btn {
+      padding: 6px 12px;
+      font-size: 13px;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .view-results-btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
     }
 
     .search-info .clear-search-btn {
       position: static;
       transform: none;
-      padding: 4px 8px;
-      font-size: 12px;
+      padding: 6px 12px;
+      font-size: 13px;
       background: var(--tab-inactive);
       color: white;
     }
 
     .search-info .clear-search-btn:hover {
       background: var(--danger-color);
+    }
+
+    /* Search Highlight */
+    .search-highlight {
+      animation: highlightPulse 2s ease-in-out;
+      border: 2px solid var(--primary-color);
+      box-shadow: 0 0 15px rgba(37, 99, 235, 0.5);
+    }
+
+    @keyframes highlightPulse {
+      0%, 100% {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 15px rgba(37, 99, 235, 0.5);
+      }
+      50% {
+        border-color: transparent;
+        box-shadow: 0 0 5px rgba(37, 99, 235, 0.2);
+      }
+    }
+
+    /* Text Highlighting */
+    .highlight-match {
+      background-color: var(--highlight-match);
+      color: #000;
+      padding: 1px 3px;
+      border-radius: 3px;
+      font-weight: bold;
+    }
+
+    .dark-mode .highlight-match {
+      background-color: var(--highlight-match-dark);
+      color: #fff;
     }
 
     input, textarea, select {
