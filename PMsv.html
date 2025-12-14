@@ -28,11 +28,61 @@
     let currentUser = null;
     let editingPasswordId = null;
     let editingNoteId = null;
+    let collapsedState = {
+      passwords: {},
+      notes: {}
+    };
 
-    // Initialize app and check auth state
+    // Load collapsed state from localStorage
+    function loadCollapsedState() {
+      const saved = localStorage.getItem('collapsedState');
+      if (saved) {
+        collapsedState = JSON.parse(saved);
+      }
+    }
+
+    // Save collapsed state to localStorage
+    function saveCollapsedState() {
+      localStorage.setItem('collapsedState', JSON.stringify(collapsedState));
+    }
+
+    // Toggle collapse for a single item
+    function toggleCollapse(type, id) {
+      if (!collapsedState[type]) collapsedState[type] = {};
+      collapsedState[type][id] = !collapsedState[type][id];
+      saveCollapsedState();
+      return collapsedState[type][id];
+    }
+
+    // Expand/Collapse all items
+    function toggleAllCollapse(type, collapse) {
+      if (!collapsedState[type]) collapsedState[type] = {};
+      
+      // Get all entry IDs
+      const entries = document.querySelectorAll(`.${type}-list .entry, .${type}-list .note-entry`);
+      entries.forEach(entry => {
+        const id = entry.dataset.id;
+        if (id) {
+          collapsedState[type][id] = collapse;
+          const content = entry.querySelector('.collapsible-content');
+          const indicator = entry.querySelector('.collapse-indicator');
+          if (content) {
+            content.classList.toggle('collapsed', collapse);
+          }
+          if (indicator) {
+            indicator.textContent = collapse ? '▶' : '▼';
+          }
+        }
+      });
+      saveCollapsedState();
+    }
+
+    // Initialize app
     document.addEventListener('DOMContentLoaded', async function() {
+      loadCollapsedState();
+      
       // Add ripple effect to buttons
-      const buttons = document.querySelectorAll('button');
+      const buttons = document.querySelectorAll('button:not(.icon-btn)');
       buttons.forEach(button => {
         button.addEventListener('click', createRipple);
       });
@@ -109,7 +159,6 @@
 
       try {
         await signInWithEmailAndPassword(auth, email, password);
-        // Auth state listener will handle the rest
       } catch (error) {
         alert("Login failed: " + error.message);
         loginBtn.innerHTML = originalText;
@@ -145,7 +194,6 @@
 
       try {
         if (editingPasswordId) {
-          // Update existing password
           await updateDoc(doc(db, "passwords", editingPasswordId), {
             userId: currentUser.uid,
             service,
@@ -156,7 +204,6 @@
           editingPasswordId = null;
           document.getElementById("savePasswordBtn").textContent = "Save Password";
         } else {
-          // Add new password
           await addDoc(collection(db, "passwords"), {
             userId: currentUser.uid,
             service,
@@ -167,7 +214,6 @@
           });
         }
 
-        // Clear form
         document.getElementById("service").value = "";
         document.getElementById("username").value = "";
         document.getElementById("password").value = "";
@@ -205,7 +251,7 @@
       }
     };
 
-    // LOAD PASSWORDS - Only current user's passwords
+    // LOAD PASSWORDS
     async function loadPasswords() {
       const list = document.getElementById("passwordList");
       list.innerHTML = '<div class="empty-state">Loading...</div>';
@@ -228,34 +274,75 @@
           return;
         }
 
+        // Add collapse controls
+        const controls = document.createElement('div');
+        controls.className = 'collapse-controls';
+        controls.innerHTML = `
+          <button onclick="toggleAllPasswords(true)" class="collapse-all-btn">
+            <span>▶</span> Collapse All
+          </button>
+          <button onclick="toggleAllPasswords(false)" class="expand-all-btn">
+            <span>▼</span> Expand All
+          </button>
+        `;
+        list.innerHTML = '';
+        list.appendChild(controls);
+
         querySnapshot.forEach((doc) => {
           const data = doc.data();
+          const isCollapsed = collapsedState.passwords[doc.id] || false;
           const div = document.createElement("div");
           div.className = "entry fade-in";
+          div.dataset.id = doc.id;
           div.innerHTML = `
-            <div class="entry-header">
-              <strong>${escapeHtml(data.service)}</strong>
+            <div class="entry-header collapsible-header" onclick="togglePasswordCollapse('${doc.id}')">
+              <div class="header-left">
+                <span class="collapse-indicator">${isCollapsed ? '▶' : '▼'}</span>
+                <strong>${escapeHtml(data.service)}</strong>
+              </div>
               <div class="entry-actions">
-                <button class="icon-btn edit-btn" onclick="editPassword('${doc.id}', '${escapeHtml(data.service).replace(/'/g, "\\'")}', '${escapeHtml(data.username).replace(/'/g, "\\'")}', '${escapeHtml(data.password).replace(/'/g, "\\'")}')">✏️</button>
-                <button class="icon-btn delete-btn" onclick="deletePassword('${doc.id}')">🗑️</button>
+                <button class="icon-btn edit-btn" onclick="editPassword('${doc.id}', '${escapeHtml(data.service).replace(/'/g, "\\'")}', '${escapeHtml(data.username).replace(/'/g, "\\'")}', '${escapeHtml(data.password).replace(/'/g, "\\'")}'); event.stopPropagation();">✏️</button>
+                <button class="icon-btn delete-btn" onclick="deletePassword('${doc.id}'); event.stopPropagation();">🗑️</button>
               </div>
             </div>
-            <div class="entry-content">
-              <div><span>Username:</span> ${escapeHtml(data.username)}</div>
-              <div><span>Password:</span> <span class="password-text">${escapeHtml(data.password)}</span> <button class="copy-btn" onclick="copyToClipboard('${escapeHtml(data.password).replace(/'/g, "\\'")}')">📋</button></div>
-              <div class="entry-date">Created: ${data.created?.toDate?.()?.toLocaleDateString() || 'N/A'}</div>
+            <div class="entry-content collapsible-content ${isCollapsed ? 'collapsed' : ''}">
+              <div class="info-row"><span>Username:</span> ${escapeHtml(data.username)}</div>
+              <div class="info-row">
+                <span>Password:</span> 
+                <span class="password-text">${escapeHtml(data.password)}</span> 
+                <button class="copy-btn" onclick="copyToClipboard('${escapeHtml(data.password).replace(/'/g, "\\'")}')">📋</button>
+              </div>
+              <div class="entry-date">
+                Created: ${data.created?.toDate?.()?.toLocaleDateString() || 'N/A'}
+                ${data.updated ? ' | Updated: ' + data.updated.toDate().toLocaleDateString() : ''}
+              </div>
             </div>
           `;
           fragment.appendChild(div);
         });
         
-        list.innerHTML = '';
         list.appendChild(fragment);
       } catch (error) {
         console.error("Load passwords error:", error);
         list.innerHTML = '<div class="error">Error loading passwords: ' + error.message + '</div>';
       }
     }
+
+    // Password collapse functions
+    window.togglePasswordCollapse = function(id) {
+      const isCollapsed = toggleCollapse('passwords', id);
+      const entry = document.querySelector(`.entry[data-id="${id}"]`);
+      if (entry) {
+        const content = entry.querySelector('.collapsible-content');
+        const indicator = entry.querySelector('.collapse-indicator');
+        if (content) content.classList.toggle('collapsed', isCollapsed);
+        if (indicator) indicator.textContent = isCollapsed ? '▶' : '▼';
+      }
+    };
+
+    window.toggleAllPasswords = function(collapse) {
+      toggleAllCollapse('passwords', collapse);
+    };
 
     // NOTES FUNCTIONS
     window.saveNote = async function () {
@@ -280,7 +367,6 @@
 
       try {
         if (editingNoteId) {
-          // Update existing note
           await updateDoc(doc(db, "notes", editingNoteId), {
             userId: currentUser.uid,
             title,
@@ -291,7 +377,6 @@
           editingNoteId = null;
           document.getElementById("saveNoteBtn").textContent = "Save Note";
         } else {
-          // Add new note
           await addDoc(collection(db, "notes"), {
             userId: currentUser.uid,
             title,
@@ -302,7 +387,6 @@
           });
         }
 
-        // Clear form
         document.getElementById("noteTitle").value = "";
         document.getElementById("noteContent").value = "";
         document.getElementById("noteCategory").value = "code";
@@ -340,7 +424,7 @@
       }
     };
 
-    // LOAD NOTES - Only current user's notes
+    // LOAD NOTES
     async function loadNotes() {
       const list = document.getElementById("notesList");
       list.innerHTML = '<div class="empty-state">Loading...</div>';
@@ -363,37 +447,73 @@
           return;
         }
 
+        // Add collapse controls
+        const controls = document.createElement('div');
+        controls.className = 'collapse-controls';
+        controls.innerHTML = `
+          <button onclick="toggleAllNotes(true)" class="collapse-all-btn">
+            <span>▶</span> Collapse All
+          </button>
+          <button onclick="toggleAllNotes(false)" class="expand-all-btn">
+            <span>▼</span> Expand All
+          </button>
+        `;
+        list.innerHTML = '';
+        list.appendChild(controls);
+
         querySnapshot.forEach((doc) => {
           const data = doc.data();
+          const isCollapsed = collapsedState.notes[doc.id] || false;
           const div = document.createElement("div");
           div.className = `note-entry fade-in ${data.category}`;
+          div.dataset.id = doc.id;
           div.innerHTML = `
-            <div class="note-header">
-              <div>
-                <strong>${escapeHtml(data.title)}</strong>
-                <span class="note-category ${data.category}">${data.category === 'code' ? '💻 Code' : data.category === 'important' ? '⭐ Important' : '📝 General'}</span>
+            <div class="note-header collapsible-header" onclick="toggleNoteCollapse('${doc.id}')">
+              <div class="header-left">
+                <span class="collapse-indicator">${isCollapsed ? '▶' : '▼'}</span>
+                <div>
+                  <strong>${escapeHtml(data.title)}</strong>
+                  <span class="note-category ${data.category}">${data.category === 'code' ? '💻 Code' : data.category === 'important' ? '⭐ Important' : '📝 General'}</span>
+                </div>
               </div>
               <div class="entry-actions">
-                <button class="icon-btn edit-btn" onclick="editNote('${doc.id}', '${escapeHtml(data.title).replace(/'/g, "\\'")}', '${escapeHtml(data.content).replace(/'/g, "\\'").replace(/\n/g, '\\n')}', '${data.category}')">✏️</button>
-                <button class="icon-btn delete-btn" onclick="deleteNote('${doc.id}')">🗑️</button>
+                <button class="icon-btn edit-btn" onclick="editNote('${doc.id}', '${escapeHtml(data.title).replace(/'/g, "\\'")}', '${escapeHtml(data.content).replace(/'/g, "\\'").replace(/\n/g, '\\n')}', '${data.category}'); event.stopPropagation();">✏️</button>
+                <button class="icon-btn delete-btn" onclick="deleteNote('${doc.id}'); event.stopPropagation();">🗑️</button>
               </div>
             </div>
-            <pre class="note-content">${escapeHtml(data.content)}</pre>
-            <div class="entry-date">
-              Created: ${data.created?.toDate?.()?.toLocaleDateString() || 'N/A'}
-              ${data.updated ? ' | Updated: ' + data.updated.toDate().toLocaleDateString() : ''}
+            <div class="collapsible-content ${isCollapsed ? 'collapsed' : ''}">
+              <pre class="note-content">${escapeHtml(data.content)}</pre>
+              <div class="entry-date">
+                Created: ${data.created?.toDate?.()?.toLocaleDateString() || 'N/A'}
+                ${data.updated ? ' | Updated: ' + data.updated.toDate().toLocaleDateString() : ''}
+              </div>
             </div>
           `;
           fragment.appendChild(div);
         });
         
-        list.innerHTML = '';
         list.appendChild(fragment);
       } catch (error) {
         console.error("Load notes error:", error);
         list.innerHTML = '<div class="error">Error loading notes: ' + error.message + '</div>';
       }
     }
+
+    // Note collapse functions
+    window.toggleNoteCollapse = function(id) {
+      const isCollapsed = toggleCollapse('notes', id);
+      const entry = document.querySelector(`.note-entry[data-id="${id}"]`);
+      if (entry) {
+        const content = entry.querySelector('.collapsible-content');
+        const indicator = entry.querySelector('.collapse-indicator');
+        if (content) content.classList.toggle('collapsed', isCollapsed);
+        if (indicator) indicator.textContent = isCollapsed ? '▶' : '▼';
+      }
+    };
+
+    window.toggleAllNotes = function(collapse) {
+      toggleAllCollapse('notes', collapse);
+    };
 
     // Helper Functions
     function escapeHtml(text) {
@@ -477,9 +597,6 @@ const app = initializeApp(firebaseConfig);`
   </script>
 
   <style>
-    /* ... (keep all your existing CSS styles exactly as they were) ... */
-    /* The CSS from your previous version remains unchanged */
-    
     :root {
       --primary-color: #2563eb;
       --primary-dark: #1e40af;
@@ -719,6 +836,74 @@ const app = initializeApp(firebaseConfig);`
       to { transform: rotate(360deg); }
     }
 
+    /* Collapse Controls */
+    .collapse-controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .collapse-controls button {
+      padding: 8px 16px;
+      font-size: 14px;
+      background: var(--entry-bg);
+      color: var(--text-color);
+      border: 1px solid var(--input-border);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .collapse-controls button:hover {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    /* Collapsible Headers */
+    .collapsible-header {
+      cursor: pointer;
+      padding: 10px;
+      margin: -10px;
+      border-radius: 8px;
+      transition: background-color 0.2s;
+    }
+
+    .collapsible-header:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .dark-mode .collapsible-header:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .collapse-indicator {
+      font-size: 12px;
+      color: var(--tab-inactive);
+      transition: transform 0.3s;
+      min-width: 12px;
+    }
+
+    /* Collapsible Content */
+    .collapsible-content {
+      overflow: hidden;
+      transition: max-height 0.3s ease, opacity 0.3s ease;
+      max-height: 500px;
+      opacity: 1;
+    }
+
+    .collapsible-content.collapsed {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+    }
+
     /* Entries */
     .entry, .note-entry {
       background: var(--entry-bg);
@@ -748,9 +933,14 @@ const app = initializeApp(firebaseConfig);`
       margin-bottom: 10px;
     }
 
+    .note-header {
+      align-items: flex-start;
+    }
+
     .entry-actions {
       display: flex;
       gap: 8px;
+      z-index: 1;
     }
 
     .icon-btn {
@@ -761,6 +951,8 @@ const app = initializeApp(firebaseConfig);`
       font-size: 16px;
       opacity: 0.7;
       transition: opacity 0.2s;
+      position: relative;
+      z-index: 2;
     }
 
     .icon-btn:hover {
@@ -780,6 +972,15 @@ const app = initializeApp(firebaseConfig);`
     .entry-content {
       font-size: 14px;
       line-height: 1.6;
+      margin-top: 10px;
+    }
+
+    .info-row {
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .note-content {
@@ -969,7 +1170,7 @@ const app = initializeApp(firebaseConfig);`
       </button>
 
       <h3 style="margin-top: 30px;">Saved Passwords</h3>
-      <div id="passwordList" class="entries-container">
+      <div id="passwordList" class="passwords-list">
         <div class="empty-state">Loading passwords...</div>
       </div>
     </div>
@@ -999,7 +1200,7 @@ const app = initializeApp(firebaseConfig);`
       </button>
 
       <h3 style="margin-top: 30px;">Saved Notes</h3>
-      <div id="notesList" class="entries-container">
+      <div id="notesList" class="notes-list">
         <div class="empty-state">Loading notes...</div>
       </div>
     </div>
