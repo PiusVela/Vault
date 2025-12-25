@@ -2,14 +2,852 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Secure Password Vault & Notes</title>
+  <title>Orange Secure Vault & Notes</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #E76F51; /* Burnt Sienna */
+      --primary-dark: #D65C40;
+      --primary-light: #F4A261;
+      --secondary-color: #264653;
+      --secondary-light: #2A9D8F;
+      --danger-color: #E63946;
+      --success-color: #2A9D8F;
+      --warning-color: #E9C46A;
+      --info-color: #457B9D;
+      --bg-color: #F8F9FA; /* Clean light gray */
+      --card-bg: #FFFFFF;
+      --text-color: #212529;
+      --text-secondary: #6C757D;
+      --input-bg: #FFFFFF;
+      --border-color: #E9ECEF;
+      --shadow-color: rgba(0, 0, 0, 0.08);
+      --entry-bg: #FFFFFF;
+      --entry-hover: #F8F9FA;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
-  <!-- Firebase v10 -->
+    .dark-mode {
+      --primary-color: #F4A261;
+      --primary-dark: #E76F51;
+      --primary-light: #F5CBA7;
+      --secondary-color: #1E3A5F;
+      --secondary-light: #2A9D8F;
+      --danger-color: #FF6B6B;
+      --success-color: #2ECC71;
+      --warning-color: #F1C40F;
+      --info-color: #3498DB;
+      --bg-color: #121212;
+      --card-bg: #1E1E1E;
+      --text-color: #E9ECEF;
+      --text-secondary: #ADB5BD;
+      --input-bg: #2D2D2D;
+      --border-color: #404040;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+      --entry-bg: #252525;
+      --entry-hover: #303030;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+      background: var(--bg-color);
+      color: var(--text-color);
+      min-height: 100vh;
+      padding: 20px;
+      transition: var(--transition);
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: 0 10px 40px var(--shadow-color);
+      border: 1px solid var(--border-color);
+    }
+
+    /* Login Screen */
+    #loginBox {
+      max-width: 420px;
+      margin: 60px auto;
+    }
+
+    .login-header {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-light));
+      color: white;
+      padding: 40px 30px;
+      text-align: center;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+
+    .login-header h2 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+
+    .login-header p {
+      margin-top: 10px;
+      opacity: 0.9;
+      font-size: 15px;
+    }
+
+    .login-content {
+      padding: 40px 30px 30px;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      background: var(--input-bg);
+      color: var(--text-color);
+      font-size: 15px;
+      transition: var(--transition);
+      font-family: inherit;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(231, 111, 81, 0.1);
+    }
+
+    button {
+      padding: 14px 24px;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      transition: var(--transition);
+      letter-spacing: 0.3px;
+    }
+
+    button:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 5px 15px rgba(231, 111, 81, 0.2);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .login-options {
+      display: flex;
+      gap: 12px;
+      margin-top: 25px;
+    }
+
+    .login-options button {
+      flex: 1;
+    }
+
+    /* Main App */
+    #appContainer {
+      display: none;
+    }
+
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 30px;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-light));
+      color: white;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .app-header h2 {
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .theme-toggle {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .theme-toggle:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: rotate(15deg);
+    }
+
+    .tabs {
+      display: flex;
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0 20px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 20px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      position: relative;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .tab-btn:hover {
+      color: var(--primary-color);
+    }
+
+    .tab-btn.active {
+      color: var(--primary-color);
+      font-weight: 600;
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 20%;
+      right: 20%;
+      height: 3px;
+      background: var(--primary-color);
+      border-radius: 3px 3px 0 0;
+    }
+
+    .tab-content {
+      padding: 30px;
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Form Sections */
+    .form-section {
+      background: var(--entry-bg);
+      padding: 28px;
+      border-radius: var(--radius-lg);
+      margin-bottom: 30px;
+      border: 1px solid var(--border-color);
+    }
+
+    .form-section h3 {
+      margin-bottom: 24px;
+      color: var(--text-color);
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .form-actions button {
+      flex: 1;
+      min-width: 140px;
+    }
+
+    /* Entry List */
+    .entry-list {
+      margin-top: 20px;
+    }
+
+    .entry {
+      background: var(--entry-bg);
+      padding: 20px;
+      border-radius: var(--radius-md);
+      margin-bottom: 12px;
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .entry:hover {
+      background: var(--entry-hover);
+      transform: translateX(4px);
+      box-shadow: 0 4px 12px var(--shadow-color);
+    }
+
+    .entry-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .entry-title {
+      font-weight: 600;
+      font-size: 16px;
+      color: var(--text-color);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .entry-subtitle {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .entry-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .entry-actions button {
+      padding: 8px 16px;
+      font-size: 13px;
+      background: var(--card-bg);
+      color: var(--text-color);
+      width: auto;
+      border: 1px solid var(--border-color);
+      font-weight: 500;
+    }
+
+    .entry-actions button:hover {
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+
+    .entry-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease;
+    }
+
+    .entry.expanded .entry-content {
+      max-height: 500px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+      /* Fix: Make note content scrollable */
+      overflow-y: auto;
+    }
+
+    /* Specific style for notes to allow scrolling long content */
+    .entry.expanded .entry-content .apple-note-content {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .password-field {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .password-field input {
+      flex: 1;
+      font-family: 'Monaco', 'Menlo', monospace;
+    }
+
+    .toggle-password {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      width: 40px;
+      padding: 0;
+    }
+
+    .toggle-password:hover {
+      color: var(--primary-color);
+      background: none;
+      transform: none;
+    }
+
+    /* Apple Notes Style - UPDATED FOR SCROLLING */
+    .apple-note-content {
+      background: var(--card-bg);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin-top: 10px;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      border: 1px solid var(--border-color);
+      /* Add these for better scrolling */
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .note-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--text-color);
+      letter-spacing: -0.3px;
+    }
+
+    .note-text {
+      font-size: 16px;
+      color: var(--text-color);
+      opacity: 0.95;
+      max-height: none;
+      /* Make text wrap properly */
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* Scrollbar styling */
+    .apple-note-content::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .apple-note-content::-webkit-scrollbar-track {
+      background: var(--entry-bg);
+      border-radius: 4px;
+    }
+
+    .apple-note-content::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+
+    .apple-note-content::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
+    }
+
+    /* Edit Form Overlay - FIXED FOR SCROLLING */
+    .edit-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      backdrop-filter: blur(5px);
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .edit-form {
+      background: var(--card-bg);
+      padding: 40px;
+      border-radius: var(--radius-lg);
+      max-width: 500px;
+      width: 90%;
+      max-height: 85vh;
+      overflow-y: auto;
+      animation: modalSlide 0.4s ease;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+
+    @keyframes modalSlide {
+      from {
+        transform: translateY(30px) scale(0.95);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Category Tags */
+    .category-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-left: 10px;
+    }
+
+    .category-general { background: var(--info-color); color: white; }
+    .category-important { background: var(--warning-color); color: #212529; }
+    .category-code { background: var(--success-color); color: white; }
+
+    /* Utility Classes */
+    .danger-btn {
+      background: var(--danger-color) !important;
+    }
+
+    .success-btn {
+      background: var(--success-color) !important;
+    }
+
+    .info-btn {
+      background: var(--info-color) !important;
+    }
+
+    .warning-btn {
+      background: var(--warning-color) !important;
+      color: #212529 !important;
+    }
+
+    .secondary-btn {
+      background: var(--secondary-color) !important;
+    }
+
+    .light-btn {
+      background: var(--entry-bg) !important;
+      color: var(--text-color) !important;
+      border: 1px solid var(--border-color) !important;
+    }
+
+    .light-btn:hover {
+      border-color: var(--primary-color) !important;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        border-radius: var(--radius-md);
+      }
+      
+      .app-header, .login-header {
+        padding: 20px;
+      }
+      
+      .tab-content {
+        padding: 20px;
+      }
+      
+      .form-actions {
+        flex-direction: column;
+      }
+      
+      .form-actions button {
+        width: 100%;
+      }
+      
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .entry-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      
+      .entry-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      
+      .edit-overlay {
+        padding: 10px;
+      }
+      
+      .edit-form {
+        padding: 24px;
+        max-height: 90vh;
+      }
+      
+      /* Adjust note height on mobile */
+      .entry.expanded .entry-content .apple-note-content {
+        max-height: 300px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+      
+      .edit-form {
+        padding: 20px;
+      }
+      
+      .entry.expanded .entry-content .apple-note-content {
+        max-height: 250px;
+      }
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 30px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state i {
+      font-size: 48px;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .empty-state h3 {
+      margin-bottom: 10px;
+      color: var(--text-color);
+    }
+
+    /* Footer */
+    .app-footer {
+      padding: 20px 30px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 14px;
+      border-top: 1px solid var(--border-color);
+      background: var(--entry-bg);
+    }
+
+    /* Password Strength */
+    .password-strength {
+      height: 4px;
+      background: var(--border-color);
+      border-radius: 2px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+
+    .password-strength-bar {
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s ease;
+      border-radius: 2px;
+    }
+
+    .strength-weak { background: var(--danger-color); }
+    .strength-medium { background: var(--warning-color); }
+    .strength-strong { background: var(--success-color); }
+  </style>
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="loginBox" class="container">
+    <div class="login-header">
+      <h2><i class="fas fa-lock"></i> Orange Secure Vault</h2>
+      <p>Your personal password manager with end-to-end encryption</p>
+    </div>
+    <div class="login-content">
+      <div class="input-group">
+        <label for="email"><i class="fas fa-envelope"></i> Email Address</label>
+        <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="input-group">
+        <label for="loginPassword"><i class="fas fa-key"></i> Password</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div class="login-options">
+        <button id="loginBtn" class="success-btn">
+          <i class="fas fa-sign-in-alt"></i> Login
+        </button>
+        <button id="signupBtn" class="info-btn">
+          <i class="fas fa-user-plus"></i> Sign Up
+        </button>
+      </div>
+      <div style="text-align: center; margin-top: 20px; color: var(--text-secondary); font-size: 14px;">
+        <i class="fas fa-shield-alt"></i> Your data is encrypted and secure
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="appContainer" class="container">
+    <div class="app-header">
+      <h2><i class="fas fa-lock"></i> Orange Secure Vault</h2>
+      <div class="header-actions">
+        <div class="theme-toggle" id="themeToggle" title="Toggle theme">
+          <i class="fas fa-moon" id="themeIcon"></i>
+        </div>
+        <button id="logoutBtn" class="light-btn">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="passwords">
+        <i class="fas fa-key"></i> Passwords
+      </button>
+      <button class="tab-btn" data-tab="notes">
+        <i class="fas fa-sticky-note"></i> Notes
+      </button>
+    </div>
+
+    <!-- Passwords Tab -->
+    <div id="passwords" class="tab-content active">
+      <div class="form-section">
+        <h3><i class="fas fa-plus-circle"></i> Add New Password</h3>
+        <div class="form-grid">
+          <div class="input-group">
+            <label for="service"><i class="fas fa-globe"></i> Service/Website</label>
+            <input type="text" id="service" placeholder="e.g., Google, GitHub">
+          </div>
+          <div class="input-group">
+            <label for="username"><i class="fas fa-user"></i> Username/Email</label>
+            <input type="text" id="username" placeholder="your@email.com">
+          </div>
+          <div class="input-group">
+            <label for="password"><i class="fas fa-key"></i> Password</label>
+            <div class="password-field">
+              <input type="password" id="password" placeholder="Create a strong password">
+              <button class="toggle-password" type="button" data-target="password">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+            <div class="password-strength">
+              <div class="password-strength-bar" id="passwordStrength"></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button id="savePasswordBtn" class="success-btn">
+            <i class="fas fa-save"></i> Save Password
+          </button>
+          <button id="generatePasswordBtn" class="secondary-btn">
+            <i class="fas fa-random"></i> Generate Strong
+          </button>
+          <button id="clearPasswordBtn" class="light-btn">
+            <i class="fas fa-times"></i> Clear
+          </button>
+        </div>
+      </div>
+
+      <div class="entry-list" id="passwordList">
+        <!-- Passwords will be loaded here -->
+      </div>
+    </div>
+
+    <!-- Notes Tab -->
+    <div id="notes" class="tab-content">
+      <div class="form-section">
+        <h3><i class="fas fa-edit"></i> Create New Note</h3>
+        <div class="form-grid">
+          <div class="input-group">
+            <label for="noteTitle"><i class="fas fa-heading"></i> Note Title</label>
+            <input type="text" id="noteTitle" placeholder="Note title">
+          </div>
+          <div class="input-group">
+            <label for="noteCategory"><i class="fas fa-tag"></i> Category</label>
+            <select id="noteCategory">
+              <option value="general">📝 General</option>
+              <option value="important">⭐ Important</option>
+              <option value="code">💻 Code</option>
+            </select>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="noteContent"><i class="fas fa-align-left"></i> Content</label>
+          <textarea id="noteContent" placeholder="Write your note here..." rows="6"></textarea>
+        </div>
+        <div class="form-actions">
+          <button id="saveNoteBtn" class="success-btn">
+            <i class="fas fa-save"></i> Save Note
+          </button>
+          <button id="clearNoteBtn" class="light-btn">
+            <i class="fas fa-times"></i> Clear
+          </button>
+        </div>
+      </div>
+
+      <div class="entry-list" id="notesList">
+        <!-- Notes will be loaded here -->
+      </div>
+    </div>
+
+    <div class="app-footer">
+      <i class="fas fa-shield-alt"></i> End-to-end encrypted • Your data is secure • 
+      <span id="itemCount">0 items</span>
+    </div>
+  </div>
+
+  <!-- Edit Overlay -->
+  <div id="editOverlay" class="edit-overlay">
+    <div class="edit-form" id="editForm">
+      <!-- Edit form will be loaded here -->
+    </div>
+  </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDSvQR6qhmjv_j8WxZNqKLy02LxOp3bwIE",
@@ -24,441 +862,192 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    // Global state
     let currentUser = null;
-    let editingPasswordId = null;
-    let editingNoteId = null;
-    let collapsedState = {
-      passwords: {},
-      notes: {}
-    };
-    let allPasswords = [];
-    let allNotes = [];
-    let lastSearchResults = {
-      passwords: [],
-      notes: []
-    };
+    let editingId = null;
+    let editingType = null;
+    let passwordsData = [];
+    let notesData = [];
+    let isDarkMode = localStorage.getItem('darkMode') === 'true';
 
-    // Load collapsed state from localStorage
-    function loadCollapsedState() {
-      const saved = localStorage.getItem('collapsedState');
-      if (saved) {
-        collapsedState = JSON.parse(saved);
-      }
-    }
-
-    // Save collapsed state to localStorage
-    function saveCollapsedState() {
-      localStorage.setItem('collapsedState', JSON.stringify(collapsedState));
-    }
-
-    // Toggle collapse for a single item
-    function toggleCollapse(type, id) {
-      if (!collapsedState[type]) collapsedState[type] = {};
-      collapsedState[type][id] = !collapsedState[type][id];
-      saveCollapsedState();
-      return collapsedState[type][id];
-    }
-
-    // Expand/Collapse all items
-    function toggleAllCollapse(type, collapse) {
-      if (!collapsedState[type]) collapsedState[type] = {};
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      // Apply theme
+      applyTheme();
       
-      // Get all entry IDs
-      const entries = document.querySelectorAll(`.${type}-list .entry, .${type}-list .note-entry`);
-      entries.forEach(entry => {
-        const id = entry.dataset.id;
-        if (id) {
-          collapsedState[type][id] = collapse;
-          const content = entry.querySelector('.collapsible-content');
-          const indicator = entry.querySelector('.collapse-indicator');
-          if (content) {
-            content.classList.toggle('collapsed', collapse);
-          }
-          if (indicator) {
-            indicator.textContent = collapse ? '▶' : '▼';
-          }
-        }
+      // Tab switching
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tabId = btn.dataset.tab;
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById(tabId).classList.add('active');
+        });
       });
-      saveCollapsedState();
-    }
 
-    // Reset note form to create mode
-    function resetNoteForm() {
-      editingNoteId = null;
-      document.getElementById("noteTitle").value = "";
-      document.getElementById("noteContent").value = "";
-      document.getElementById("noteCategory").value = "code";
-      document.getElementById("saveNoteBtn").textContent = "Create Note";
-      document.getElementById("saveNoteBtn").classList.remove("update-mode");
-      document.getElementById("cancelEditBtn").classList.add("hidden");
-      document.getElementById("notesFormTitle").textContent = "Create New Note";
-    }
-
-    // Reset password form to create mode
-    function resetPasswordForm() {
-      editingPasswordId = null;
-      document.getElementById("service").value = "";
-      document.getElementById("username").value = "";
-      document.getElementById("password").value = "";
-      document.getElementById("savePasswordBtn").textContent = "Create Password";
-      document.getElementById("savePasswordBtn").classList.remove("update-mode");
-      document.getElementById("cancelPasswordEditBtn").classList.add("hidden");
-      document.getElementById("passwordsFormTitle").textContent = "Create New Password";
-    }
-
-    // Search functions
-    function searchPasswords() {
-      const searchTerm = document.getElementById('searchPasswords').value.toLowerCase().trim();
-      const entries = document.querySelectorAll('#passwordList .entry');
-      let visibleCount = 0;
-      lastSearchResults.passwords = [];
+      // Theme toggle
+      document.getElementById('themeToggle').addEventListener('click', toggleTheme);
       
-      entries.forEach(entry => {
-        if (entry.classList.contains('empty-state') || entry.classList.contains('error') || 
-            entry.classList.contains('search-info') || entry.classList.contains('collapse-controls')) {
-          return;
-        }
+      // Password visibility toggle
+      document.getElementById('password').addEventListener('input', updatePasswordStrength);
+      
+      // Add toggle password functionality for the create password field
+      document.querySelector('.toggle-password').addEventListener('click', function() {
+        const targetId = this.getAttribute('data-target');
+        const input = document.getElementById(targetId);
+        const icon = this.querySelector('i');
         
-        const service = entry.querySelector('strong')?.textContent.toLowerCase() || '';
-        const username = entry.querySelector('.info-row:nth-child(1)')?.textContent.toLowerCase() || '';
-        const password = entry.querySelector('.password-text')?.textContent.toLowerCase() || '';
-        
-        const matches = service.includes(searchTerm) || 
-                       username.includes(searchTerm) || 
-                       password.includes(searchTerm);
-        
-        if (searchTerm === '' || matches) {
-          entry.style.display = 'block';
-          visibleCount++;
-          if (searchTerm !== '' && matches) {
-            lastSearchResults.passwords.push(entry.dataset.id);
-            // Add highlight to matching text
-            highlightMatches(entry, searchTerm);
-          } else {
-            removeHighlights(entry);
-          }
+        if (input.type === 'password') {
+          input.type = 'text';
+          icon.classList.remove('fa-eye');
+          icon.classList.add('fa-eye-slash');
         } else {
-          entry.style.display = 'none';
-          removeHighlights(entry);
+          input.type = 'password';
+          icon.classList.remove('fa-eye-slash');
+          icon.classList.add('fa-eye');
+        }
+      });
+
+      // Login/Signup buttons
+      document.getElementById('loginBtn').addEventListener('click', firebaseLogin);
+      document.getElementById('signupBtn').addEventListener('click', firebaseSignUp);
+      document.getElementById('logoutBtn').addEventListener('click', logout);
+
+      // ADDED: Enter key login functionality
+      document.getElementById('email').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          firebaseLogin();
         }
       });
       
-      // Update search info
-      let searchInfo = document.getElementById('passwordSearchInfo');
-      if (!searchInfo) {
-        searchInfo = document.createElement('div');
-        searchInfo.id = 'passwordSearchInfo';
-        searchInfo.className = 'search-info';
-        const controls = document.querySelector('#passwordList .collapse-controls');
-        if (controls) {
-          controls.after(searchInfo);
-        }
-      }
-      
-      if (searchTerm === '') {
-        searchInfo.innerHTML = '';
-        removeAllHighlights('passwords');
-      } else {
-        const total = document.querySelectorAll('#passwordList .entry:not(.empty-state):not(.error):not(.search-info):not(.collapse-controls)').length;
-        searchInfo.innerHTML = `
-          <div class="search-results-info">
-            <span>🔍 Found ${visibleCount} of ${total} passwords</span>
-            <div class="search-actions">
-              ${visibleCount > 0 ? `<button class="view-results-btn" onclick="viewSearchResults('passwords')">🔍 View Results</button>` : ''}
-              <button class="clear-search-btn" onclick="clearPasswordSearch()">Clear</button>
-            </div>
-          </div>
-        `;
-      }
-    }
-
-    function viewSearchResults(type) {
-      if (type === 'passwords' && lastSearchResults.passwords.length > 0) {
-        // Collapse all first
-        toggleAllCollapse('passwords', true);
-        
-        // Expand and highlight search results
-        setTimeout(() => {
-          lastSearchResults.passwords.forEach(id => {
-            const entry = document.querySelector(`.entry[data-id="${id}"]`);
-            if (entry) {
-              const content = entry.querySelector('.collapsible-content');
-              const indicator = entry.querySelector('.collapse-indicator');
-              if (content) {
-                content.classList.remove('collapsed');
-                // Scroll into view with smooth animation
-                setTimeout(() => {
-                  entry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                  entry.classList.add('search-highlight');
-                  setTimeout(() => entry.classList.remove('search-highlight'), 2000);
-                }, 100);
-              }
-              if (indicator) {
-                indicator.textContent = '▼';
-              }
-            }
-          });
-        }, 300);
-      } else if (type === 'notes' && lastSearchResults.notes.length > 0) {
-        // Collapse all first
-        toggleAllCollapse('notes', true);
-        
-        // Expand and highlight search results
-        setTimeout(() => {
-          lastSearchResults.notes.forEach(id => {
-            const entry = document.querySelector(`.note-entry[data-id="${id}"]`);
-            if (entry) {
-              const content = entry.querySelector('.collapsible-content');
-              const indicator = entry.querySelector('.collapse-indicator');
-              if (content) {
-                content.classList.remove('collapsed');
-                // Scroll into view with smooth animation
-                setTimeout(() => {
-                  entry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                  entry.classList.add('search-highlight');
-                  setTimeout(() => entry.classList.remove('search-highlight'), 2000);
-                }, 100);
-              }
-              if (indicator) {
-                indicator.textContent = '▼';
-              }
-            }
-          });
-        }, 300);
-      }
-    }
-
-    function clearPasswordSearch() {
-      document.getElementById('searchPasswords').value = '';
-      searchPasswords();
-    }
-
-    function searchNotes() {
-      const searchTerm = document.getElementById('searchNotes').value.toLowerCase().trim();
-      const entries = document.querySelectorAll('#notesList .note-entry');
-      let visibleCount = 0;
-      lastSearchResults.notes = [];
-      
-      entries.forEach(entry => {
-        if (entry.classList.contains('empty-state') || entry.classList.contains('error') || 
-            entry.classList.contains('search-info') || entry.classList.contains('collapse-controls')) {
-          return;
-        }
-        
-        const title = entry.querySelector('strong')?.textContent.toLowerCase() || '';
-        const category = entry.querySelector('.note-category')?.textContent.toLowerCase() || '';
-        const content = entry.querySelector('.note-content')?.textContent.toLowerCase() || '';
-        
-        const matches = title.includes(searchTerm) || 
-                       category.includes(searchTerm) || 
-                       content.includes(searchTerm);
-        
-        if (searchTerm === '' || matches) {
-          entry.style.display = 'block';
-          visibleCount++;
-          if (searchTerm !== '' && matches) {
-            lastSearchResults.notes.push(entry.dataset.id);
-            // Add highlight to matching text
-            highlightMatches(entry, searchTerm);
-          } else {
-            removeHighlights(entry);
-          }
-        } else {
-          entry.style.display = 'none';
-          removeHighlights(entry);
+      document.getElementById('loginPassword').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          firebaseLogin();
         }
       });
-      
-      // Update search info
-      let searchInfo = document.getElementById('noteSearchInfo');
-      if (!searchInfo) {
-        searchInfo = document.createElement('div');
-        searchInfo.id = 'noteSearchInfo';
-        searchInfo.className = 'search-info';
-        const controls = document.querySelector('#notesList .collapse-controls');
-        if (controls) {
-          controls.after(searchInfo);
-        }
-      }
-      
-      if (searchTerm === '') {
-        searchInfo.innerHTML = '';
-        removeAllHighlights('notes');
-      } else {
-        const total = document.querySelectorAll('#notesList .note-entry:not(.empty-state):not(.error):not(.search-info):not(.collapse-controls)').length;
-        searchInfo.innerHTML = `
-          <div class="search-results-info">
-            <span>🔍 Found ${visibleCount} of ${total} notes</span>
-            <div class="search-actions">
-              ${visibleCount > 0 ? `<button class="view-results-btn" onclick="viewSearchResults('notes')">🔍 View Results</button>` : ''}
-              <button class="clear-search-btn" onclick="clearNoteSearch()">Clear</button>
-            </div>
-          </div>
-        `;
-      }
-    }
 
-    function clearNoteSearch() {
-      document.getElementById('searchNotes').value = '';
-      searchNotes();
-    }
+      // Password form buttons
+      document.getElementById('savePasswordBtn').addEventListener('click', savePassword);
+      document.getElementById('generatePasswordBtn').addEventListener('click', generatePassword);
+      document.getElementById('clearPasswordBtn').addEventListener('click', clearPasswordForm);
 
-    // Highlight text matches
-    function highlightMatches(element, searchTerm) {
-      if (!searchTerm) return;
-      
-      // Highlight in title/strong elements
-      const strongElements = element.querySelectorAll('strong');
-      strongElements.forEach(el => {
-        const text = el.textContent;
-        const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
-        const highlighted = text.replace(regex, '<span class="highlight-match">$1</span>');
-        if (highlighted !== text) {
-          el.innerHTML = highlighted;
+      // Note form buttons
+      document.getElementById('saveNoteBtn').addEventListener('click', saveNote);
+      document.getElementById('clearNoteBtn').addEventListener('click', clearNoteForm);
+
+      // Close edit overlay when clicking outside
+      document.getElementById('editOverlay').addEventListener('click', function(e) {
+        if (e.target === this) {
+          closeEdit();
         }
       });
-      
-      // Highlight in content
-      const contentElements = element.querySelectorAll('.note-content, .info-row, .password-text');
-      contentElements.forEach(el => {
-        const text = el.textContent;
-        const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
-        const highlighted = text.replace(regex, '<span class="highlight-match">$1</span>');
-        if (highlighted !== text) {
-          el.innerHTML = highlighted;
-        }
-      });
-    }
-
-    function removeHighlights(element) {
-      const highlighted = element.querySelectorAll('.highlight-match');
-      highlighted.forEach(el => {
-        const parent = el.parentNode;
-        if (parent) {
-          parent.replaceChild(document.createTextNode(el.textContent), el);
-          parent.normalize();
-        }
-      });
-    }
-
-    function removeAllHighlights(type) {
-      const selector = type === 'passwords' ? '#passwordList .entry' : '#notesList .note-entry';
-      const entries = document.querySelectorAll(selector);
-      entries.forEach(entry => removeHighlights(entry));
-    }
-
-    function escapeRegExp(string) {
-      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
-
-    // Initialize app
-    document.addEventListener('DOMContentLoaded', async function() {
-      loadCollapsedState();
-      
-      // Add ripple effect to buttons
-      const buttons = document.querySelectorAll('button:not(.icon-btn)');
-      buttons.forEach(button => {
-        button.addEventListener('click', createRipple);
-      });
-      
-      // Check dark mode preference
-      if (localStorage.getItem('darkMode') === 'true') {
-        document.body.classList.add('dark-mode');
-        updateDarkModeToggleIcon();
-      }
 
       // Check auth state
       onAuthStateChanged(auth, (user) => {
         if (user) {
           currentUser = user;
-          document.getElementById("loginBox").classList.add("hidden");
-          document.getElementById("appContainer").classList.remove("hidden");
+          document.getElementById("loginBox").style.display = "none";
+          document.getElementById("appContainer").style.display = "block";
           loadPasswords();
           loadNotes();
         } else {
           currentUser = null;
-          document.getElementById("loginBox").classList.remove("hidden");
-          document.getElementById("appContainer").classList.add("hidden");
+          document.getElementById("loginBox").style.display = "block";
+          document.getElementById("appContainer").style.display = "none";
         }
       });
     });
 
-    // Update dark mode toggle icon
-    function updateDarkModeToggleIcon() {
-      const toggleButtons = document.querySelectorAll('.dark-mode-toggle');
-      const isDarkMode = document.body.classList.contains('dark-mode');
-      toggleButtons.forEach(btn => {
-        btn.innerHTML = isDarkMode ? '☀️' : '🌙';
-      });
+    // Theme Functions
+    function applyTheme() {
+      if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+        document.getElementById('themeIcon').classList.remove('fa-moon');
+        document.getElementById('themeIcon').classList.add('fa-sun');
+      } else {
+        document.body.classList.remove('dark-mode');
+        document.getElementById('themeIcon').classList.remove('fa-sun');
+        document.getElementById('themeIcon').classList.add('fa-moon');
+      }
     }
 
-    // Ripple Effect
-    function createRipple(event) {
-      const button = event.currentTarget;
-      if (button.classList.contains('no-ripple')) return;
-      
-      const circle = document.createElement("span");
-      const diameter = Math.max(button.clientWidth, button.clientHeight);
-      const radius = diameter / 2;
-      const rect = button.getBoundingClientRect();
-      
-      circle.style.width = circle.style.height = `${diameter}px`;
-      circle.style.left = `${event.clientX - rect.left - radius}px`;
-      circle.style.top = `${event.clientY - rect.top - radius}px`;
-      circle.classList.add("ripple");
-      
-      const ripple = button.getElementsByClassName("ripple")[0];
-      if (ripple) ripple.remove();
-      
-      button.appendChild(circle);
+    function toggleTheme() {
+      isDarkMode = !isDarkMode;
+      localStorage.setItem('darkMode', isDarkMode);
+      applyTheme();
     }
 
-    // Dark Mode Toggle
-    function toggleDarkMode() {
-      document.body.classList.toggle('dark-mode');
-      localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
-      updateDarkModeToggleIcon();
+    // Password Strength
+    function updatePasswordStrength() {
+      const password = document.getElementById('password').value;
+      const strengthBar = document.getElementById('passwordStrength');
+      
+      if (!password) {
+        strengthBar.style.width = '0%';
+        return;
+      }
+      
+      let strength = 0;
+      if (password.length >= 8) strength++;
+      if (/[A-Z]/.test(password)) strength++;
+      if (/[0-9]/.test(password)) strength++;
+      if (/[^A-Za-z0-9]/.test(password)) strength++;
+      if (password.length >= 12) strength++;
+      
+      const width = (strength / 5) * 100;
+      strengthBar.style.width = width + '%';
+      
+      strengthBar.className = 'password-strength-bar ';
+      if (width < 40) strengthBar.classList.add('strength-weak');
+      else if (width < 70) strengthBar.classList.add('strength-medium');
+      else strengthBar.classList.add('strength-strong');
     }
 
-    // Tab Navigation
-    function showTab(tabName) {
-      document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.add('hidden');
-      });
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      document.getElementById(tabName).classList.remove('hidden');
-      event.currentTarget.classList.add('active');
-    }
-
-    // LOGIN
-    window.firebaseLogin = async function () {
+    // Auth Functions
+    async function firebaseLogin() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("loginPassword").value;
-      const loginBtn = document.querySelector('#loginBox button');
-      const originalText = loginBtn.innerHTML;
 
-      loginBtn.innerHTML = '<div class="spinner"></div> Logging in...';
-      loginBtn.disabled = true;
+      if (!email || !password) {
+        alert("Please enter email and password");
+        return;
+      }
 
       try {
         await signInWithEmailAndPassword(auth, email, password);
       } catch (error) {
         alert("Login failed: " + error.message);
-        loginBtn.innerHTML = originalText;
-        loginBtn.disabled = false;
       }
-    };
+    }
 
-    // LOGOUT
-    window.logout = async function () {
+    async function firebaseSignUp() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("loginPassword").value;
+
+      if (!email || !password) {
+        alert("Please enter email and password");
+        return;
+      }
+
+      if (password.length < 6) {
+        alert("Password must be at least 6 characters");
+        return;
+      }
+
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        alert("Account created successfully!");
+      } catch (error) {
+        alert("Sign up failed: " + error.message);
+      }
+    }
+
+    async function logout() {
       await signOut(auth);
-    };
+    }
 
-    // PASSWORD FUNCTIONS
-    window.savePassword = async function () {
+    // Password Functions
+    async function savePassword() {
       if (!currentUser) {
         alert("Please log in first");
         return;
@@ -467,194 +1056,159 @@
       const service = document.getElementById("service").value.trim();
       const username = document.getElementById("username").value.trim();
       const password = document.getElementById("password").value.trim();
-      const saveBtn = document.querySelector('#savePasswordBtn');
-      const originalText = saveBtn.textContent;
 
       if (!service || !username || !password) {
         alert("All fields are required");
         return;
       }
 
-      saveBtn.innerHTML = '<div class="spinner small"></div> Saving...';
-      saveBtn.disabled = true;
-
       try {
-        if (editingPasswordId) {
-          // Update existing password
-          await updateDoc(doc(db, "passwords", editingPasswordId), {
-            userId: currentUser.uid,
-            service,
-            username,
-            password,
-            updated: new Date()
-          });
-          resetPasswordForm();
-        } else {
-          // Create new password
-          await addDoc(collection(db, "passwords"), {
-            userId: currentUser.uid,
-            service,
-            username,
-            password,
-            created: new Date(),
-            updated: new Date()
-          });
-          
-          // Clear form after creating
-          document.getElementById("service").value = "";
-          document.getElementById("username").value = "";
-          document.getElementById("password").value = "";
-        }
+        await addDoc(collection(db, "passwords"), {
+          userId: currentUser.uid,
+          service,
+          username,
+          password,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
 
-        await loadPasswords();
+        clearPasswordForm();
+        loadPasswords();
+        alert("Password saved successfully!");
       } catch (error) {
         alert("Error saving password: " + error.message);
-        console.error("Save password error:", error);
-      } finally {
-        saveBtn.innerHTML = originalText;
-        saveBtn.disabled = false;
-      }
-    };
-
-    window.editPassword = function (id, service, username, password) {
-      editingPasswordId = id;
-      document.getElementById("service").value = service;
-      document.getElementById("username").value = username;
-      document.getElementById("password").value = password;
-      document.getElementById("savePasswordBtn").textContent = "Update Password";
-      document.getElementById("savePasswordBtn").classList.add("update-mode");
-      document.getElementById("cancelPasswordEditBtn").classList.remove("hidden");
-      document.getElementById("passwordsFormTitle").textContent = "Edit Password";
-      showTab('passwordsTab');
-      document.getElementById("service").focus();
-    };
-
-    window.cancelPasswordEdit = function() {
-      resetPasswordForm();
-    };
-
-    window.deletePassword = async function (id) {
-      if (!currentUser) return;
-      
-      if (confirm("Are you sure you want to delete this password?")) {
-        try {
-          await deleteDoc(doc(db, "passwords", id));
-          await loadPasswords();
-        } catch (error) {
-          alert("Error deleting: " + error.message);
-        }
-      }
-    };
-
-    // LOAD PASSWORDS
-    async function loadPasswords() {
-      const list = document.getElementById("passwordList");
-      list.innerHTML = '<div class="empty-state">Loading...</div>';
-
-      if (!currentUser) {
-        list.innerHTML = '<div class="empty-state">Please log in</div>';
-        return;
-      }
-
-      try {
-        const q = query(
-          collection(db, "passwords"), 
-          where("userId", "==", currentUser.uid)
-        );
-        const querySnapshot = await getDocs(q);
-        allPasswords = [];
-        
-        if (querySnapshot.empty) {
-          list.innerHTML = '<div class="empty-state">No passwords saved yet</div>';
-          return;
-        }
-
-        // Add search bar and collapse controls
-        const controls = document.createElement('div');
-        controls.className = 'search-controls';
-        controls.innerHTML = `
-          <div class="search-box">
-            <input type="text" id="searchPasswords" placeholder="🔍 Search passwords..." 
-                   oninput="searchPasswords()" />
-            <button class="clear-search-btn" onclick="clearPasswordSearch()">✕</button>
-          </div>
-          <div class="collapse-controls">
-            <button onclick="toggleAllPasswords(true)" class="collapse-all-btn">
-              <span>▶</span> Collapse All
-            </button>
-            <button onclick="toggleAllPasswords(false)" class="expand-all-btn">
-              <span>▼</span> Expand All
-            </button>
-          </div>
-        `;
-        list.innerHTML = '';
-        list.appendChild(controls);
-
-        const fragment = document.createDocumentFragment();
-        
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          allPasswords.push({
-            id: doc.id,
-            ...data
-          });
-          
-          const isCollapsed = collapsedState.passwords[doc.id] || false;
-          const div = document.createElement("div");
-          div.className = "entry fade-in";
-          div.dataset.id = doc.id;
-          div.innerHTML = `
-            <div class="entry-header collapsible-header" onclick="togglePasswordCollapse('${doc.id}')">
-              <div class="header-left">
-                <span class="collapse-indicator">${isCollapsed ? '▶' : '▼'}</span>
-                <strong>${escapeHtml(data.service)}</strong>
-              </div>
-              <div class="entry-actions">
-                <button class="icon-btn edit-btn" onclick="editPassword('${doc.id}', '${escapeHtml(data.service).replace(/'/g, "\\'")}', '${escapeHtml(data.username).replace(/'/g, "\\'")}', '${escapeHtml(data.password).replace(/'/g, "\\'")}'); event.stopPropagation();">✏️</button>
-                <button class="icon-btn delete-btn" onclick="deletePassword('${doc.id}'); event.stopPropagation();">🗑️</button>
-              </div>
-            </div>
-            <div class="entry-content collapsible-content ${isCollapsed ? 'collapsed' : ''}">
-              <div class="info-row"><span>Username:</span> ${escapeHtml(data.username)}</div>
-              <div class="info-row">
-                <span>Password:</span> 
-                <span class="password-text">${escapeHtml(data.password)}</span> 
-                <button class="copy-btn" onclick="copyToClipboard('${escapeHtml(data.password).replace(/'/g, "\\'")}')">📋</button>
-              </div>
-              <div class="entry-date">
-                Created: ${data.created?.toDate?.()?.toLocaleDateString() || 'N/A'}
-                ${data.updated ? ' | Updated: ' + data.updated.toDate().toLocaleDateString() : ''}
-              </div>
-            </div>
-          `;
-          fragment.appendChild(div);
-        });
-        
-        list.appendChild(fragment);
-      } catch (error) {
-        console.error("Load passwords error:", error);
-        list.innerHTML = '<div class="error">Error loading passwords: ' + error.message + '</div>';
       }
     }
 
-    // Password collapse functions
-    window.togglePasswordCollapse = function(id) {
-      const isCollapsed = toggleCollapse('passwords', id);
-      const entry = document.querySelector(`.entry[data-id="${id}"]`);
-      if (entry) {
-        const content = entry.querySelector('.collapsible-content');
-        const indicator = entry.querySelector('.collapse-indicator');
-        if (content) content.classList.toggle('collapsed', isCollapsed);
-        if (indicator) indicator.textContent = isCollapsed ? '▶' : '▼';
+    async function loadPasswords() {
+      if (!currentUser) return;
+
+      try {
+        const q = query(collection(db, "passwords"), where("userId", "==", currentUser.uid));
+        const querySnapshot = await getDocs(q);
+        
+        passwordsData = [];
+        querySnapshot.forEach((doc) => {
+          passwordsData.push({
+            id: doc.id,
+            ...doc.data()
+          });
+        });
+
+        renderPasswords();
+        updateItemCount();
+      } catch (error) {
+        console.error("Error loading passwords:", error);
       }
-    };
+    }
 
-    window.toggleAllPasswords = function(collapse) {
-      toggleAllCollapse('passwords', collapse);
-    };
+    function renderPasswords() {
+      const container = document.getElementById("passwordList");
+      
+      if (!passwordsData.length) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-key"></i>
+            <h3>No passwords saved yet</h3>
+            <p>Add your first password to get started</p>
+          </div>`;
+        return;
+      }
 
-    // NOTES FUNCTIONS
-    window.saveNote = async function () {
+      let html = '';
+      passwordsData.forEach(password => {
+        html += `
+          <div class="entry" data-id="${password.id}">
+            <div class="entry-header">
+              <div>
+                <div class="entry-title">
+                  <i class="fas fa-globe"></i> ${escapeHtml(password.service)}
+                </div>
+                <div class="entry-subtitle">${escapeHtml(password.username)}</div>
+              </div>
+              <div class="entry-actions">
+                <button onclick="window.showEditPasswordForm('${password.id}', '${escapeHtml(password.service)}', '${escapeHtml(password.username)}', '${escapeHtml(password.password)}')">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+                <button onclick="window.deletePassword('${password.id}')" class="danger-btn">
+                  <i class="fas fa-trash"></i> Delete
+                </button>
+              </div>
+            </div>
+            <div class="entry-content">
+              <div style="margin-top: 16px;">
+                <div class="input-group">
+                  <label>Password (Visible for editing)</label>
+                  <div class="password-field">
+                    <input type="text" id="display-password-${password.id}" value="${escapeHtml(password.password)}" readonly>
+                    <button class="toggle-password" type="button" onclick="window.copyToClipboard('${escapeHtml(password.password)}', 'Password')">
+                      <i class="fas fa-copy"></i>
+                    </button>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 16px;">
+                  <button onclick="window.copyToClipboard('${escapeHtml(password.username)}', 'Username')" class="info-btn" style="flex: 1;">
+                    <i class="fas fa-copy"></i> Copy Username
+                  </button>
+                  <button onclick="window.copyToClipboard('${escapeHtml(password.password)}', 'Password')" class="success-btn" style="flex: 1;">
+                    <i class="fas fa-copy"></i> Copy Password
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+      
+      // Add click handlers for expanding entries
+      container.querySelectorAll('.entry').forEach(entry => {
+        entry.addEventListener('click', function(e) {
+          if (!e.target.closest('.entry-actions') && !e.target.closest('.toggle-password')) {
+            this.classList.toggle('expanded');
+          }
+        });
+      });
+      
+      // Add toggle password functionality for each password entry
+      container.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function(e) {
+          e.stopPropagation();
+        });
+      });
+    }
+
+    async function deletePassword(id) {
+      if (!confirm("Are you sure you want to delete this password?")) return;
+
+      try {
+        await deleteDoc(doc(db, "passwords", id));
+        loadPasswords();
+      } catch (error) {
+        alert("Error deleting password: " + error.message);
+      }
+    }
+
+    function generatePassword() {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+      let password = "";
+      for (let i = 0; i < 16; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      document.getElementById("password").value = password;
+      updatePasswordStrength();
+    }
+
+    function clearPasswordForm() {
+      document.getElementById("service").value = "";
+      document.getElementById("username").value = "";
+      document.getElementById("password").value = "";
+      document.getElementById("passwordStrength").style.width = "0%";
+    }
+
+    // Note Functions
+    async function saveNote() {
       if (!currentUser) {
         alert("Please log in first");
         return;
@@ -663,1139 +1217,321 @@
       const title = document.getElementById("noteTitle").value.trim();
       const content = document.getElementById("noteContent").value.trim();
       const category = document.getElementById("noteCategory").value;
-      const saveBtn = document.querySelector('#saveNoteBtn');
-      const originalText = saveBtn.textContent;
 
       if (!title || !content) {
         alert("Title and content are required");
         return;
       }
 
-      saveBtn.innerHTML = '<div class="spinner small"></div> Saving...';
-      saveBtn.disabled = true;
-
       try {
-        if (editingNoteId) {
-          // Update existing note
-          await updateDoc(doc(db, "notes", editingNoteId), {
-            userId: currentUser.uid,
-            title,
-            content,
-            category,
-            updated: new Date()
-          });
-          resetNoteForm();
-        } else {
-          // Create new note
-          await addDoc(collection(db, "notes"), {
-            userId: currentUser.uid,
-            title,
-            content,
-            category,
-            created: new Date(),
-            updated: new Date()
-          });
-          
-          // Clear form after creating
-          document.getElementById("noteTitle").value = "";
-          document.getElementById("noteContent").value = "";
-          document.getElementById("noteCategory").value = "code";
-        }
+        await addDoc(collection(db, "notes"), {
+          userId: currentUser.uid,
+          title,
+          content,
+          category,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
 
-        await loadNotes();
+        clearNoteForm();
+        loadNotes();
+        alert("Note saved successfully!");
       } catch (error) {
         alert("Error saving note: " + error.message);
-        console.error("Save note error:", error);
-      } finally {
-        saveBtn.innerHTML = originalText;
-        saveBtn.disabled = false;
-      }
-    };
-
-    window.editNote = function (id, title, content, category) {
-      editingNoteId = id;
-      document.getElementById("noteTitle").value = title;
-      document.getElementById("noteContent").value = content;
-      document.getElementById("noteCategory").value = category;
-      document.getElementById("saveNoteBtn").textContent = "Update Note";
-      document.getElementById("saveNoteBtn").classList.add("update-mode");
-      document.getElementById("cancelEditBtn").classList.remove("hidden");
-      document.getElementById("notesFormTitle").textContent = "Edit Note";
-      showTab('notesTab');
-      document.getElementById("noteTitle").focus();
-    };
-
-    window.cancelNoteEdit = function() {
-      resetNoteForm();
-    };
-
-    window.deleteNote = async function (id) {
-      if (!currentUser) return;
-      
-      if (confirm("Are you sure you want to delete this note?")) {
-        try {
-          await deleteDoc(doc(db, "notes", id));
-          await loadNotes();
-        } catch (error) {
-          alert("Error deleting: " + error.message);
-        }
-      }
-    };
-
-    // LOAD NOTES
-    async function loadNotes() {
-      const list = document.getElementById("notesList");
-      list.innerHTML = '<div class="empty-state">Loading...</div>';
-
-      if (!currentUser) {
-        list.innerHTML = '<div class="empty-state">Please log in</div>';
-        return;
-      }
-
-      try {
-        const q = query(
-          collection(db, "notes"), 
-          where("userId", "==", currentUser.uid)
-        );
-        const querySnapshot = await getDocs(q);
-        allNotes = [];
-        
-        if (querySnapshot.empty) {
-          list.innerHTML = '<div class="empty-state">No notes saved yet</div>';
-          return;
-        }
-
-        // Add search bar and collapse controls
-        const controls = document.createElement('div');
-        controls.className = 'search-controls';
-        controls.innerHTML = `
-          <div class="search-box">
-            <input type="text" id="searchNotes" placeholder="🔍 Search notes..." 
-                   oninput="searchNotes()" />
-            <button class="clear-search-btn" onclick="clearNoteSearch()">✕</button>
-          </div>
-          <div class="collapse-controls">
-            <button onclick="toggleAllNotes(true)" class="collapse-all-btn">
-              <span>▶</span> Collapse All
-            </button>
-            <button onclick="toggleAllNotes(false)" class="expand-all-btn">
-              <span>▼</span> Expand All
-            </button>
-          </div>
-        `;
-        list.innerHTML = '';
-        list.appendChild(controls);
-
-        const fragment = document.createDocumentFragment();
-        
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          allNotes.push({
-            id: doc.id,
-            ...data
-          });
-          
-          const isCollapsed = collapsedState.notes[doc.id] || false;
-          const div = document.createElement("div");
-          div.className = `note-entry fade-in ${data.category}`;
-          div.dataset.id = doc.id;
-          div.innerHTML = `
-            <div class="note-header collapsible-header" onclick="toggleNoteCollapse('${doc.id}')">
-              <div class="header-left">
-                <span class="collapse-indicator">${isCollapsed ? '▶' : '▼'}</span>
-                <div>
-                  <strong>${escapeHtml(data.title)}</strong>
-                  <span class="note-category ${data.category}">${data.category === 'code' ? '💻 Code' : data.category === 'important' ? '⭐ Important' : '📝 General'}</span>
-                </div>
-              </div>
-              <div class="entry-actions">
-                <button class="icon-btn edit-btn" onclick="editNote('${doc.id}', '${escapeHtml(data.title).replace(/'/g, "\\'")}', '${escapeHtml(data.content).replace(/'/g, "\\'").replace(/\n/g, '\\n')}', '${data.category}'); event.stopPropagation();">✏️</button>
-                <button class="icon-btn delete-btn" onclick="deleteNote('${doc.id}'); event.stopPropagation();">🗑️</button>
-              </div>
-            </div>
-            <div class="collapsible-content ${isCollapsed ? 'collapsed' : ''}">
-              <div class="note-content-wrapper">
-                <pre class="note-content scrollable">${escapeHtml(data.content)}</pre>
-              </div>
-              <div class="entry-date">
-                Created: ${data.created?.toDate?.()?.toLocaleDateString() || 'N/A'}
-                ${data.updated ? ' | Updated: ' + data.updated.toDate().toLocaleDateString() : ''}
-              </div>
-            </div>
-          `;
-          fragment.appendChild(div);
-        });
-        
-        list.appendChild(fragment);
-      } catch (error) {
-        console.error("Load notes error:", error);
-        list.innerHTML = '<div class="error">Error loading notes: ' + error.message + '</div>';
       }
     }
 
-    // Note collapse functions
-    window.toggleNoteCollapse = function(id) {
-      const isCollapsed = toggleCollapse('notes', id);
-      const entry = document.querySelector(`.note-entry[data-id="${id}"]`);
-      if (entry) {
-        const content = entry.querySelector('.collapsible-content');
-        const indicator = entry.querySelector('.collapse-indicator');
-        if (content) content.classList.toggle('collapsed', isCollapsed);
-        if (indicator) indicator.textContent = isCollapsed ? '▶' : '▼';
-      }
-    };
+    async function loadNotes() {
+      if (!currentUser) return;
 
-    window.toggleAllNotes = function(collapse) {
-      toggleAllCollapse('notes', collapse);
-    };
+      try {
+        const q = query(collection(db, "notes"), where("userId", "==", currentUser.uid));
+        const querySnapshot = await getDocs(q);
+        
+        notesData = [];
+        querySnapshot.forEach((doc) => {
+          notesData.push({
+            id: doc.id,
+            ...doc.data()
+          });
+        });
+
+        renderNotes();
+        updateItemCount();
+      } catch (error) {
+        console.error("Error loading notes:", error);
+      }
+    }
+
+    function renderNotes() {
+      const container = document.getElementById("notesList");
+      
+      if (!notesData.length) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-sticky-note"></i>
+            <h3>No notes saved yet</h3>
+            <p>Create your first note to get started</p>
+          </div>`;
+        return;
+      }
+
+      let html = '';
+      notesData.forEach(note => {
+        const categoryIcons = {
+          'general': '📝',
+          'important': '⭐',
+          'code': '💻'
+        };
+        const categoryNames = {
+          'general': 'General',
+          'important': 'Important',
+          'code': 'Code'
+        };
+        
+        // Properly escape the content for JavaScript string
+        const escapedContent = escapeHtml(note.content).replace(/'/g, "\\'").replace(/\n/g, '\\n');
+        
+        html += `
+          <div class="entry" data-id="${note.id}">
+            <div class="entry-header">
+              <div>
+                <div class="entry-title">
+                  ${categoryIcons[note.category]} ${escapeHtml(note.title)}
+                  <span class="category-tag category-${note.category}">${categoryNames[note.category]}</span>
+                </div>
+                <div class="entry-subtitle">${new Date(note.createdAt?.seconds * 1000).toLocaleDateString()}</div>
+              </div>
+              <div class="entry-actions">
+                <button onclick="window.showEditNoteForm('${note.id}', '${escapeHtml(note.title)}', '${escapedContent}', '${note.category}')">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+                <button onclick="window.deleteNote('${note.id}')" class="danger-btn">
+                  <i class="fas fa-trash"></i> Delete
+                </button>
+              </div>
+            </div>
+            <div class="entry-content">
+              <div class="apple-note-content">
+                <div class="note-title">${escapeHtml(note.title)}</div>
+                <div class="note-text">${escapeHtml(note.content).replace(/\n/g, '<br>')}</div>
+                <div style="margin-top: 15px; display: flex; gap: 10px;">
+                  <button onclick="window.copyToClipboard('${escapedContent}', 'Note')" class="info-btn" style="flex: 1;">
+                    <i class="fas fa-copy"></i> Copy Note
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+      
+      // Add click handlers for expanding entries
+      container.querySelectorAll('.entry').forEach(entry => {
+        entry.addEventListener('click', function(e) {
+          if (!e.target.closest('.entry-actions') && !e.target.closest('button')) {
+            this.classList.toggle('expanded');
+          }
+        });
+      });
+    }
+
+    async function deleteNote(id) {
+      if (!confirm("Are you sure you want to delete this note?")) return;
+
+      try {
+        await deleteDoc(doc(db, "notes", id));
+        loadNotes();
+      } catch (error) {
+        alert("Error deleting note: " + error.message);
+      }
+    }
+
+    function clearNoteForm() {
+      document.getElementById("noteTitle").value = "";
+      document.getElementById("noteContent").value = "";
+      document.getElementById("noteCategory").value = "general";
+    }
+
+    // Edit Functions - FIXED
+    function showEditPasswordForm(id, service, username, password) {
+      editingId = id;
+      editingType = 'password';
+      
+      const form = `
+        <h3 style="margin-bottom: 24px; display: flex; align-items: center; gap: 10px;">
+          <i class="fas fa-edit"></i> Edit Password
+        </h3>
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 14px;">Service/Website</label>
+          <input type="text" id="editService" value="${service}" placeholder="Service/Website" style="width: 100%; padding: 14px; border-radius: var(--radius-md); background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color);">
+        </div>
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 14px;">Username/Email</label>
+          <input type="text" id="editUsername" value="${username}" placeholder="Username/Email" style="width: 100%; padding: 14px; border-radius: var(--radius-md); background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color);">
+        </div>
+        <div style="margin-bottom: 30px;">
+          <label style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 14px;">Password</label>
+          <div class="password-field">
+            <input type="text" id="editPassword" value="${password}" placeholder="Password" style="width: 100%; padding: 14px; border-radius: var(--radius-md); background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); font-family: 'Monaco', monospace;">
+            <button class="toggle-password" type="button" onclick="window.copyToClipboard('${escapeHtml(password)}', 'Password')" style="width: 40px; padding: 0; background: none; border: none; color: var(--text-secondary);">
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+          <div style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;">
+            <i class="fas fa-info-circle"></i> Password is visible for editing
+          </div>
+        </div>
+        <div style="display: flex; gap: 12px;">
+          <button onclick="window.saveEdit()" class="success-btn" style="flex: 1;">
+            <i class="fas fa-save"></i> Save Changes
+          </button>
+          <button onclick="window.closeEdit()" class="light-btn" style="flex: 1;">
+            <i class="fas fa-times"></i> Cancel
+          </button>
+        </div>
+      `;
+      
+      document.getElementById('editForm').innerHTML = form;
+      document.getElementById('editOverlay').style.display = 'flex';
+    }
+
+    function showEditNoteForm(id, title, content, category) {
+      editingId = id;
+      editingType = 'note';
+      
+      // Unescape the newline characters for display
+      const displayContent = content.replace(/\\n/g, '\n').replace(/\\'/g, "'");
+      
+      const form = `
+        <h3 style="margin-bottom: 24px; display: flex; align-items: center; gap: 10px;">
+          <i class="fas fa-edit"></i> Edit Note
+        </h3>
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 14px;">Note Title</label>
+          <input type="text" id="editNoteTitle" value="${title}" placeholder="Note Title" style="width: 100%; padding: 14px; border-radius: var(--radius-md); background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color);">
+        </div>
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 14px;">Category</label>
+          <select id="editNoteCategory" style="width: 100%; padding: 14px; border-radius: var(--radius-md); background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color);">
+            <option value="general" ${category === 'general' ? 'selected' : ''}>📝 General</option>
+            <option value="important" ${category === 'important' ? 'selected' : ''}>⭐ Important</option>
+            <option value="code" ${category === 'code' ? 'selected' : ''}>💻 Code</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 30px;">
+          <label style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 14px;">Content</label>
+          <textarea id="editNoteContent" placeholder="Note Content" rows="10" style="width: 100%; padding: 14px; border-radius: var(--radius-md); background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); font-family: inherit;">${displayContent}</textarea>
+        </div>
+        <div style="display: flex; gap: 12px;">
+          <button onclick="window.saveEdit()" class="success-btn" style="flex: 1;">
+            <i class="fas fa-save"></i> Save Changes
+          </button>
+          <button onclick="window.closeEdit()" class="light-btn" style="flex: 1;">
+            <i class="fas fa-times"></i> Cancel
+          </button>
+        </div>
+      `;
+      
+      document.getElementById('editForm').innerHTML = form;
+      document.getElementById('editOverlay').style.display = 'flex';
+    }
+
+    async function saveEdit() {
+      try {
+        if (editingType === 'password') {
+          const service = document.getElementById('editService').value.trim();
+          const username = document.getElementById('editUsername').value.trim();
+          const password = document.getElementById('editPassword').value.trim();
+
+          if (!service || !username || !password) {
+            alert("All fields are required");
+            return;
+          }
+
+          await updateDoc(doc(db, "passwords", editingId), {
+            service,
+            username,
+            password,
+            updatedAt: new Date()
+          });
+
+          loadPasswords();
+        } else if (editingType === 'note') {
+          const title = document.getElementById('editNoteTitle').value.trim();
+          const content = document.getElementById('editNoteContent').value.trim();
+          const category = document.getElementById('editNoteCategory').value;
+
+          if (!title || !content) {
+            alert("Title and content are required");
+            return;
+          }
+
+          await updateDoc(doc(db, "notes", editingId), {
+            title,
+            content,
+            category,
+            updatedAt: new Date()
+          });
+
+          loadNotes();
+        }
+
+        closeEdit();
+        alert("Changes saved successfully!");
+      } catch (error) {
+        alert("Error saving changes: " + error.message);
+      }
+    }
+
+    function closeEdit() {
+      document.getElementById('editOverlay').style.display = 'none';
+      editingId = null;
+      editingType = null;
+    }
 
     // Helper Functions
     function escapeHtml(text) {
+      if (!text) return '';
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
     }
 
-    function copyToClipboard(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        const btn = event.target;
-        const original = btn.textContent;
-        btn.textContent = '✅ Copied!';
-        setTimeout(() => btn.textContent = original, 2000);
+    function copyToClipboard(text, type) {
+      // Unescape any escaped characters
+      const unescapedText = text.replace(/\\n/g, '\n').replace(/\\'/g, "'");
+      navigator.clipboard.writeText(unescapedText).then(() => {
+        alert(`${type} copied to clipboard!`);
+      }).catch(err => {
+        console.error('Failed to copy: ', err);
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = unescapedText;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert(`${type} copied to clipboard!`);
       });
     }
 
-    // Predefined Templates
-    window.insertTemplate = function (templateType) {
-      const templates = {
-        html: `<!DOCTYPE html>
-<html>
-<head>
-    <title>Page Title</title>
-    <style>
-        /* CSS here */
-    </style>
-</head>
-<body>
-    <!-- Content here -->
-</body>
-</html>`,
-        css: `/* CSS Reset */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+    function updateItemCount() {
+      const total = passwordsData.length + notesData.length;
+      document.getElementById('itemCount').textContent = `${total} items`;
+    }
 
-/* Container */
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-}`,
-        javascript: `// Function example
-function exampleFunction(param) {
-    return new Promise((resolve, reject) => {
-        // Async operations here
-    });
-}
-
-// Event listener
-document.addEventListener('DOMContentLoaded', () => {
-    // Code here
-});`,
-        firebase: `// Firebase Configuration
-const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);`
-      };
-
-      document.getElementById("noteContent").value = templates[templateType] || '';
-      document.getElementById("noteCategory").value = "code";
-      document.getElementById("noteTitle").value = `${templateType.toUpperCase()} Template`;
-      document.getElementById("saveNoteBtn").focus();
-    };
-
-    // Expose functions to window
-    window.toggleDarkMode = toggleDarkMode;
-    window.showTab = showTab;
+    // Make functions available globally
+    window.showEditPasswordForm = showEditPasswordForm;
+    window.showEditNoteForm = showEditNoteForm;
+    window.deletePassword = deletePassword;
+    window.deleteNote = deleteNote;
     window.copyToClipboard = copyToClipboard;
-    window.insertTemplate = insertTemplate;
-    window.resetNoteForm = resetNoteForm;
-    window.resetPasswordForm = resetPasswordForm;
-    window.searchPasswords = searchPasswords;
-    window.searchNotes = searchNotes;
-    window.clearPasswordSearch = clearPasswordSearch;
-    window.clearNoteSearch = clearNoteSearch;
-    window.viewSearchResults = viewSearchResults;
+    window.saveEdit = saveEdit;
+    window.closeEdit = closeEdit;
+    window.escapeHtml = escapeHtml;
   </script>
-
-  <style>
-    :root {
-      --primary-color: #2563eb;
-      --primary-dark: #1e40af;
-      --danger-color: #dc2626;
-      --danger-dark: #991b1b;
-      --success-color: #16a34a;
-      --warning-color: #f59e0b;
-      --update-color: #f59e0b;
-      --bg-gradient: linear-gradient(135deg, #1e3a8a, #2563eb);
-      --bg-color: #ffffff;
-      --text-color: #1f2937;
-      --input-bg: #ffffff;
-      --input-border: #cbd5e1;
-      --card-bg: #ffffff;
-      --entry-bg: #f1f5f9;
-      --shadow-color: rgba(0,0,0,0.1);
-      --tab-inactive: #94a3b8;
-      --scrollbar-thumb: #cbd5e1;
-      --scrollbar-track: #f1f5f9;
-      --search-highlight: #fef3c7;
-      --highlight-match: #fef3c7;
-      --highlight-match-dark: #7c2d12;
-    }
-
-    .dark-mode {
-      --primary-color: #3b82f6;
-      --primary-dark: #1d4ed8;
-      --danger-color: #ef4444;
-      --danger-dark: #b91c1c;
-      --success-color: #22c55e;
-      --warning-color: #f59e0b;
-      --update-color: #f59e0b;
-      --bg-gradient: linear-gradient(135deg, #1e293b, #334155);
-      --bg-color: #0f172a;
-      --text-color: #f1f5f9;
-      --input-bg: #1e293b;
-      --input-border: #475569;
-      --card-bg: #1e293b;
-      --entry-bg: #334155;
-      --shadow-color: rgba(0,0,0,0.3);
-      --tab-inactive: #64748b;
-      --scrollbar-thumb: #475569;
-      --scrollbar-track: #1e293b;
-      --search-highlight: #374151;
-      --highlight-match: #7c2d12;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: var(--bg-gradient);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0;
-      padding: 20px;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      transition: all 0.5s ease;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 800px;
-      background: var(--card-bg);
-      border-radius: 16px;
-      box-shadow: 0 20px 40px var(--shadow-color);
-      overflow: hidden;
-      transition: all 0.3s ease;
-    }
-
-    .header {
-      background: var(--primary-color);
-      color: white;
-      padding: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: all 0.3s ease;
-    }
-
-    .header h2 {
-      margin: 0;
-      color: white;
-    }
-
-    .header-actions {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .tabs {
-      display: flex;
-      background: var(--entry-bg);
-      border-bottom: 2px solid var(--input-border);
-      transition: all 0.3s ease;
-    }
-
-    .tab-btn {
-      flex: 1;
-      padding: 15px;
-      background: none;
-      border: none;
-      color: var(--tab-inactive);
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      position: relative;
-    }
-
-    .tab-btn.active {
-      color: var(--primary-color);
-      background: var(--card-bg);
-    }
-
-    .tab-btn.active::after {
-      content: '';
-      position: absolute;
-      bottom: -2px;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: var(--primary-color);
-    }
-
-    .tab-content {
-      padding: 25px;
-    }
-
-    .tab-content.hidden {
-      display: none;
-    }
-
-    h3 {
-      color: var(--primary-color);
-      margin-top: 0;
-      margin-bottom: 20px;
-      padding-bottom: 10px;
-      border-bottom: 2px solid var(--input-border);
-    }
-
-    .form-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-    }
-
-    .form-header h4 {
-      margin: 0;
-      color: var(--text-color);
-      font-size: 18px;
-    }
-
-    .form-actions {
-      display: flex;
-      gap: 10px;
-    }
-
-    /* Search Controls */
-    .search-controls {
-      margin-bottom: 15px;
-    }
-
-    .search-box {
-      position: relative;
-      display: flex;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-
-    .search-box input {
-      flex: 1;
-      padding: 12px 40px 12px 12px;
-      border-radius: 8px;
-      border: 1px solid var(--input-border);
-      background: var(--input-bg);
-      color: var(--text-color);
-      font-size: 14px;
-      transition: all 0.3s ease;
-    }
-
-    .search-box input:focus {
-      outline: none;
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
-
-    .clear-search-btn {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: var(--tab-inactive);
-      cursor: pointer;
-      font-size: 16px;
-      padding: 4px 8px;
-      border-radius: 4px;
-    }
-
-    .clear-search-btn:hover {
-      background: var(--entry-bg);
-      color: var(--danger-color);
-    }
-
-    /* Search Results Info */
-    .search-info {
-      padding: 12px;
-      background: var(--entry-bg);
-      border-radius: 8px;
-      margin-bottom: 15px;
-      font-size: 14px;
-      color: var(--tab-inactive);
-      border-left: 4px solid var(--primary-color);
-    }
-
-    .search-results-info {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .search-results-info span {
-      color: var(--primary-color);
-      font-weight: 600;
-      font-size: 14px;
-    }
-
-    .search-actions {
-      display: flex;
-      gap: 8px;
-    }
-
-    .view-results-btn {
-      padding: 6px 12px;
-      font-size: 13px;
-      background: var(--primary-color);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .view-results-btn:hover {
-      background: var(--primary-dark);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
-    }
-
-    .search-info .clear-search-btn {
-      position: static;
-      transform: none;
-      padding: 6px 12px;
-      font-size: 13px;
-      background: var(--tab-inactive);
-      color: white;
-    }
-
-    .search-info .clear-search-btn:hover {
-      background: var(--danger-color);
-    }
-
-    /* Search Highlight */
-    .search-highlight {
-      animation: highlightPulse 2s ease-in-out;
-      border: 2px solid var(--primary-color);
-      box-shadow: 0 0 15px rgba(37, 99, 235, 0.5);
-    }
-
-    @keyframes highlightPulse {
-      0%, 100% {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 15px rgba(37, 99, 235, 0.5);
-      }
-      50% {
-        border-color: transparent;
-        box-shadow: 0 0 5px rgba(37, 99, 235, 0.2);
-      }
-    }
-
-    /* Text Highlighting */
-    .highlight-match {
-      background-color: var(--highlight-match);
-      color: #000;
-      padding: 1px 3px;
-      border-radius: 3px;
-      font-weight: bold;
-    }
-
-    .dark-mode .highlight-match {
-      background-color: var(--highlight-match-dark);
-      color: #fff;
-    }
-
-    input, textarea, select {
-      width: 100%;
-      padding: 12px;
-      margin-top: 10px;
-      border-radius: 8px;
-      border: 1px solid var(--input-border);
-      font-size: 15px;
-      background: var(--input-bg);
-      color: var(--text-color);
-      transition: all 0.3s ease;
-      font-family: 'Segoe UI', monospace;
-    }
-
-    textarea {
-      min-height: 150px;
-      resize: vertical;
-    }
-
-    input:focus, textarea:focus, select:focus {
-      outline: none;
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      margin-top: 15px;
-    }
-
-    button {
-      padding: 12px 24px;
-      background: var(--primary-color);
-      color: white;
-      font-size: 15px;
-      font-weight: 600;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      position: relative;
-      overflow: hidden;
-    }
-
-    button:hover:not(:disabled) {
-      background: var(--primary-dark);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(37, 99, 235, 0.3);
-    }
-
-    button:active:not(:disabled) {
-      transform: translateY(0);
-    }
-
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    button.update-mode {
-      background: var(--update-color);
-    }
-
-    button.update-mode:hover:not(:disabled) {
-      background: #d97706;
-      box-shadow: 0 6px 12px rgba(245, 158, 11, 0.3);
-    }
-
-    .cancel-btn {
-      background: var(--tab-inactive);
-    }
-
-    .cancel-btn:hover {
-      background: #64748b;
-    }
-
-    .logout-btn {
-      background: var(--danger-color);
-    }
-
-    .logout-btn:hover:not(:disabled) {
-      background: var(--danger-dark);
-    }
-
-    /* Ripple Effect */
-    .ripple {
-      position: absolute;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.7);
-      transform: scale(0);
-      animation: ripple-animation 0.6s linear;
-    }
-
-    @keyframes ripple-animation {
-      to {
-        transform: scale(4);
-        opacity: 0;
-      }
-    }
-
-    /* Spinner */
-    .spinner {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(255, 255, 255, 0.3);
-      border-radius: 50%;
-      border-top-color: white;
-      animation: spin 1s ease-in-out infinite;
-      margin-right: 8px;
-      vertical-align: middle;
-    }
-
-    .spinner.small {
-      width: 16px;
-      height: 16px;
-      border-width: 2px;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* Collapse Controls */
-    .collapse-controls {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 15px;
-    }
-
-    .collapse-controls button {
-      padding: 8px 16px;
-      font-size: 14px;
-      background: var(--entry-bg);
-      color: var(--text-color);
-      border: 1px solid var(--input-border);
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .collapse-controls button:hover {
-      background: var(--primary-color);
-      color: white;
-    }
-
-    /* Collapsible Headers */
-    .collapsible-header {
-      cursor: pointer;
-      padding: 10px;
-      margin: -10px;
-      border-radius: 8px;
-      transition: background-color 0.2s;
-    }
-
-    .collapsible-header:hover {
-      background-color: rgba(0, 0, 0, 0.05);
-    }
-
-    .dark-mode .collapsible-header:hover {
-      background-color: rgba(255, 255, 255, 0.05);
-    }
-
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex: 1;
-    }
-
-    .collapse-indicator {
-      font-size: 12px;
-      color: var(--tab-inactive);
-      transition: transform 0.3s;
-      min-width: 12px;
-    }
-
-    /* Collapsible Content */
-    .collapsible-content {
-      overflow: hidden;
-      transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
-      max-height: 0;
-      opacity: 0;
-    }
-
-    .collapsible-content:not(.collapsed) {
-      max-height: 500px;
-      opacity: 1;
-    }
-
-    /* Note Content Wrapper */
-    .note-content-wrapper {
-      max-height: 300px;
-      overflow-y: auto;
-      margin: 10px 0;
-      border-radius: 8px;
-      background: var(--input-bg);
-    }
-
-    /* Note Content with Scrollbar */
-    .note-content {
-      padding: 15px;
-      font-family: 'Courier New', monospace;
-      font-size: 13px;
-      white-space: pre-wrap;
-      word-break: break-all;
-      margin: 0;
-      line-height: 1.5;
-    }
-
-    /* Scrollbar Styling */
-    .note-content-wrapper::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-
-    .note-content-wrapper::-webkit-scrollbar-track {
-      background: var(--scrollbar-track);
-      border-radius: 4px;
-    }
-
-    .note-content-wrapper::-webkit-scrollbar-thumb {
-      background: var(--scrollbar-thumb);
-      border-radius: 4px;
-    }
-
-    .note-content-wrapper::-webkit-scrollbar-thumb:hover {
-      background: var(--primary-color);
-    }
-
-    /* For Firefox */
-    .note-content-wrapper {
-      scrollbar-width: thin;
-      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-    }
-
-    /* Entries */
-    .entry, .note-entry {
-      background: var(--entry-bg);
-      border-radius: 10px;
-      padding: 15px;
-      margin-top: 15px;
-      transition: all 0.3s ease;
-      border-left: 4px solid var(--primary-color);
-    }
-
-    .note-entry.code {
-      border-left-color: #8b5cf6;
-    }
-
-    .note-entry.important {
-      border-left-color: #f59e0b;
-    }
-
-    .note-entry.general {
-      border-left-color: #10b981;
-    }
-
-    .entry-header, .note-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .note-header {
-      align-items: flex-start;
-    }
-
-    .entry-actions {
-      display: flex;
-      gap: 8px;
-      z-index: 1;
-    }
-
-    .icon-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 5px;
-      font-size: 16px;
-      opacity: 0.7;
-      transition: opacity 0.2s;
-      position: relative;
-      z-index: 2;
-    }
-
-    .icon-btn:hover {
-      opacity: 1;
-      transform: scale(1.1);
-      background: none !important;
-    }
-
-    .edit-btn:hover {
-      color: var(--warning-color);
-    }
-
-    .delete-btn:hover {
-      color: var(--danger-color);
-    }
-
-    .entry-content {
-      font-size: 14px;
-      line-height: 1.6;
-      margin-top: 10px;
-    }
-
-    .info-row {
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .password-text {
-      font-family: 'Courier New', monospace;
-      background: var(--input-bg);
-      padding: 2px 8px;
-      border-radius: 4px;
-      margin-right: 8px;
-    }
-
-    .copy-btn {
-      padding: 2px 8px;
-      font-size: 12px;
-      background: var(--success-color);
-      margin-left: 5px;
-    }
-
-    .copy-btn:hover {
-      background: var(--success-color);
-      opacity: 0.9;
-    }
-
-    .entry-date {
-      font-size: 12px;
-      color: var(--tab-inactive);
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid var(--input-border);
-    }
-
-    .note-category {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 600;
-      margin-left: 10px;
-      vertical-align: middle;
-    }
-
-    .note-category.code {
-      background: #8b5cf6;
-      color: white;
-    }
-
-    .note-category.important {
-      background: #f59e0b;
-      color: white;
-    }
-
-    .note-category.general {
-      background: #10b981;
-      color: white;
-    }
-
-    /* Templates */
-    .templates {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 10px;
-      margin: 15px 0;
-    }
-
-    .template-btn {
-      background: var(--entry-bg);
-      color: var(--text-color);
-      border: 1px solid var(--input-border);
-    }
-
-    .template-btn:hover {
-      background: var(--primary-color);
-      color: white;
-    }
-
-    /* Empty State */
-    .empty-state, .error {
-      text-align: center;
-      padding: 40px;
-      color: var(--tab-inactive);
-      font-style: italic;
-    }
-
-    .error {
-      color: var(--danger-color);
-    }
-
-    /* Fade Animation */
-    .fade-in {
-      animation: fadeIn 0.5s ease forwards;
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    /* Dark Mode Toggle */
-    .dark-mode-toggle {
-      background: none;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      color: white;
-      font-size: 18px;
-      padding: 8px;
-      border-radius: 50%;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .dark-mode-toggle:hover {
-      background: rgba(255, 255, 255, 0.1);
-      transform: rotate(30deg);
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    span {
-      font-weight: 600;
-      color: var(--primary-color);
-    }
-  </style>
-</head>
-<body>
-
-  <!-- LOGIN SCREEN -->
-  <div class="container" id="loginBox">
-    <div class="header">
-      <h2>🔐 Secure Vault Login</h2>
-      <button class="dark-mode-toggle" onclick="toggleDarkMode()">
-        🌙
-      </button>
-    </div>
-    <div style="padding: 25px;">
-      <input type="email" id="email" placeholder="Email Address" />
-      <input type="password" id="loginPassword" placeholder="Password" />
-      <button onclick="firebaseLogin()" style="width: 100%; margin-top: 20px;">
-        Access Secure Vault
-      </button>
-    </div>
-  </div>
-
-  <!-- MAIN APP -->
-  <div class="container hidden" id="appContainer">
-    <div class="header">
-      <h2>🔐 Secure Vault & Notes</h2>
-      <div class="header-actions">
-        <button class="dark-mode-toggle" onclick="toggleDarkMode()">
-          🌙
-        </button>
-        <button class="logout-btn" onclick="logout()">Logout</button>
-      </div>
-    </div>
-
-    <!-- TABS -->
-    <div class="tabs">
-      <button class="tab-btn active" onclick="showTab('passwordsTab')">🔑 Passwords</button>
-      <button class="tab-btn" onclick="showTab('notesTab')">📝 Notes & Code</button>
-    </div>
-
-    <!-- PASSWORDS TAB -->
-    <div id="passwordsTab" class="tab-content">
-      <div class="form-header">
-        <h4 id="passwordsFormTitle">Create New Password</h4>
-        <div class="form-actions">
-          <button class="cancel-btn hidden" id="cancelPasswordEditBtn" onclick="cancelPasswordEdit()">Cancel Edit</button>
-        </div>
-      </div>
-      
-      <input type="text" id="service" placeholder="Service / Website" />
-      <input type="text" id="username" placeholder="Username / Email" />
-      <input type="password" id="password" placeholder="Password" />
-      
-      <div style="display: flex; gap: 10px; margin-top: 15px;">
-        <button id="savePasswordBtn" onclick="savePassword()" style="flex: 1;">
-          Create Password
-        </button>
-      </div>
-
-      <h3 style="margin-top: 30px;">Saved Passwords</h3>
-      <div id="passwordList" class="passwords-list">
-        <div class="empty-state">Loading passwords...</div>
-      </div>
-    </div>
-
-    <!-- NOTES TAB -->
-    <div id="notesTab" class="tab-content hidden">
-      <div class="form-header">
-        <h4 id="notesFormTitle">Create New Note</h4>
-        <div class="form-actions">
-          <button class="cancel-btn hidden" id="cancelEditBtn" onclick="cancelNoteEdit()">Cancel Edit</button>
-        </div>
-      </div>
-      
-      <input type="text" id="noteTitle" placeholder="Note Title" />
-      
-      <div class="form-row">
-        <select id="noteCategory">
-          <option value="code">💻 Code Template</option>
-          <option value="important">⭐ Important Note</option>
-          <option value="general">📝 General Note</option>
-        </select>
-        <div class="templates">
-          <button class="template-btn" onclick="insertTemplate('html')">HTML</button>
-          <button class="template-btn" onclick="insertTemplate('css')">CSS</button>
-          <button class="template-btn" onclick="insertTemplate('javascript')">JavaScript</button>
-          <button class="template-btn" onclick="insertTemplate('firebase')">Firebase</button>
-        </div>
-      </div>
-      
-      <textarea id="noteContent" placeholder="Enter your note or code here..."></textarea>
-      
-      <div style="display: flex; gap: 10px; margin-top: 15px;">
-        <button id="saveNoteBtn" onclick="saveNote()" style="flex: 1;">
-          Create Note
-        </button>
-      </div>
-
-      <h3 style="margin-top: 30px;">Saved Notes</h3>
-      <div id="notesList" class="notes-list">
-        <div class="empty-state">Loading notes...</div>
-      </div>
-    </div>
-  </div>
-
 </body>
 </html>
